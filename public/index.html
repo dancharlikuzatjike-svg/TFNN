@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#143f2c" />
+    <meta name="description" content="TFNN private farmer portal prototype" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>TFNN Farmer Portal</title>
+  </head>
+  <body>
+    <div id="loginView" class="login-shell">
+      <section class="login-card">
+        <div class="brand-lockup login-brand">
+          <span class="brand-mark">TF</span>
+          <span><strong>Trying Farmers</strong><small>Network Namibia</small></span>
+        </div>
+        <div class="eyebrow">PRIVATE FARMER PORTAL</div>
+        <h1>Your herd, organised and ready for the field.</h1>
+        <p class="login-intro">Sign in with your TFNN farmer account. Your livestock records are loaded securely from the TFNN database.</p>
+        <form id="loginForm" class="login-form">
+          <label><span>Phone number</span><input id="loginPhone" name="phone" autocomplete="tel" required placeholder="e.g. 081 234 5678" /></label>
+          <label><span>Password</span><input id="loginPassword" name="password" type="password" autocomplete="current-password" minlength="8" required placeholder="Your TFNN password" /></label>
+          <p id="loginError" class="form-error" hidden></p>
+          <button id="loginButton" class="primary-button" type="submit">Sign in to farmer portal</button>
+        </form>
+        <div class="privacy-note"><span>●</span> Secure farmer account · Records restricted to their owner</div>
+      </section>
+      <aside class="login-visual" aria-hidden="true">
+        <div class="sun"></div>
+        <div class="land land-back"></div>
+        <div class="land land-front"></div>
+        <div class="kraal-ring"></div>
+        <div class="animal-dots"><span>●</span><span>●</span><span>●</span><span>●</span><span>●</span></div>
+        <blockquote>“Good records turn every animal into a better decision.”</blockquote>
+      </aside>
+    </div>
+
+    <div id="appView" class="app-shell" hidden>
+      <aside class="sidebar">
+        <div class="brand-lockup">
+          <span class="brand-mark">TF</span>
+          <span><strong>Trying Farmers</strong><small>Network Namibia</small></span>
+        </div>
+        <nav aria-label="Portal navigation">
+          <button class="nav-item active" data-view="herd"><span>▦</span> Herd records</button>
+          <button class="nav-item" data-view="breeding"><span>♢</span> Breeding & pedigree</button>
+          <button class="nav-item" data-view="offline"><span>⇄</span> Offline records</button>
+        </nav>
+        <div class="sidebar-foot">
+          <div class="sync-pill"><span id="connectionDot"></span><span id="connectionText">Checking connection</span></div>
+          <button id="switchFarmer" class="text-button">Sign out</button>
+        </div>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <button id="mobileMenu" class="icon-button mobile-only" aria-label="Open menu">☰</button>
+          <div>
+            <span class="breadcrumb">FARMER PORTAL</span>
+            <h2 id="farmName">Mopane Ridge Farm</h2>
+          </div>
+          <div class="top-actions">
+            <span class="pilot-badge">Private pilot</span>
+            <button id="addAnimal" class="primary-button"><span>＋</span> Add animal</button>
+          </div>
+        </header>
+
+        <div class="content">
+          <section id="herdView" class="view active">
+            <div class="welcome-row">
+              <div>
+                <p class="eyebrow">HERD OVERVIEW</p>
+                <h1>Know every animal. Plan every move.</h1>
+                <p id="updatedLabel" class="muted"></p>
+              </div>
+              <div class="mini-legend"><span class="legend-dot"></span> Changes save on this device</div>
+            </div>
+
+            <div id="statGrid" class="stat-grid"></div>
+
+            <div class="panel records-panel">
+              <div class="panel-head">
+                <div>
+                  <h3>Livestock register</h3>
+                  <p id="recordCount" class="muted"></p>
+                </div>
+                <div class="record-tools">
+                  <label class="search-box"><span>⌕</span><input id="recordSearch" type="search" placeholder="Search tag, name or breed" /></label>
+                  <button id="exportCsv" class="secondary-button">Export view</button>
+                </div>
+              </div>
+              <div id="speciesTabs" class="tabs" role="tablist"></div>
+              <div class="filter-bar">
+                <select id="recordClass" class="select" aria-label="Filter by class"><option>All</option></select>
+                <select id="recordStatus" class="select" aria-label="Filter by status"><option>All</option><option>Active</option><option>Sold</option><option>Deceased</option></select>
+                <select id="recordSort" class="select" aria-label="Sort records"><option value="tag">Tag A–Z</option><option value="updated">Recently updated</option><option value="species">Species</option></select>
+                <label class="toggle-filter"><input id="breedingOnly" type="checkbox" /><span></span> Breeding males only</label>
+                <button id="clearFilters" class="text-action">Clear filters</button>
+              </div>
+              <div id="bulkBar" class="bulk-bar" hidden>
+                <strong id="selectedCount">0 selected</strong>
+                <select id="bulkStatus" class="select" aria-label="Bulk status"><option value="">Change status…</option><option>Active</option><option>Sold</option><option>Deceased</option></select>
+                <button id="applyBulkStatus" class="secondary-button">Apply</button>
+                <button id="exportSelected" class="secondary-button">Export selected</button>
+                <button id="clearSelection" class="text-action">Clear</button>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th><input id="selectAllRecords" type="checkbox" aria-label="Select all shown records" /></th><th>Animal</th><th>Species</th><th>Class</th><th>Breed</th><th>Breeding role</th><th>Status</th><th></th></tr></thead>
+                  <tbody id="recordsBody"></tbody>
+                </table>
+              </div>
+              <div id="emptyRecords" class="empty-state" hidden><span>◎</span><h4>No animals found</h4><p>Try another species or search term.</p></div>
+            </div>
+          </section>
+
+          <section id="breedingView" class="view">
+            <div class="section-title">
+              <div><p class="eyebrow">BREEDING CONTROL</p><h1>Breeding males & pedigree</h1><p>Only Bull, Ram, and Buck records are recognised as breeding males for their matching species.</p></div>
+              <span class="rule-badge">Species-safe classification</span>
+            </div>
+            <div class="breeding-grid">
+              <div class="panel">
+                <div class="panel-head"><div><h3>Confirmed breeding males</h3><p class="muted">Filtered from this farmer’s herd</p></div><select id="breedingSpecies" class="select"><option>All</option><option>Cattle</option><option>Sheep</option><option>Goat</option></select></div>
+                <div id="breedingList" class="breeding-list"></div>
+              </div>
+              <div class="panel pedigree-panel">
+                <div class="panel-head"><div><h3>Pedigree viewer</h3><p class="muted">Filter, select, and inspect relationships</p></div></div>
+                <div class="pedigree-filters"><select id="pedigreeSpecies" class="select"><option>All</option><option>Cattle</option><option>Sheep</option><option>Goat</option></select><select id="pedigreeAnimal" class="select grow"></select></div>
+                <div id="pedigreeTree" class="pedigree-tree"></div>
+              </div>
+            </div>
+          </section>
+
+          <section id="offlineView" class="view">
+            <div class="section-title">
+              <div><p class="eyebrow">FIELD WORKFLOW</p><h1>Keep recording without a signal</h1><p>Download the current farmer record, work offline, and bring updates back into the same account.</p></div>
+              <span id="offlineStatusBadge" class="rule-badge">Ready</span>
+            </div>
+            <div class="workflow panel">
+              <div class="workflow-step"><span class="step-number">1</span><div class="step-icon">↓</div><h3>Download record</h3><p>Save a structured backup for this farmer or a spreadsheet-friendly CSV.</p><div class="button-stack"><button id="downloadJson" class="primary-button">Download offline file</button><button id="downloadCsv" class="secondary-button">Download CSV</button></div></div>
+              <div class="workflow-line"></div>
+              <div class="workflow-step"><span class="step-number">2</span><div class="step-icon">✎</div><h3>Record in the field</h3><p>Add or edit animals here even when mobile data is unavailable. Changes remain on this device.</p><span class="status-chip">Automatic local save</span></div>
+              <div class="workflow-line"></div>
+              <div class="workflow-step"><span class="step-number">3</span><div class="step-icon">↑</div><h3>Import updates</h3><p>Import the TFNN offline file. Matching ear tags update; new tags are added to this farmer only.</p><button id="importFileButton" class="primary-button">Choose file to import</button><input id="importFile" type="file" accept="application/json,.json" hidden /></div>
+            </div>
+            <div class="offline-summary">
+              <div><span>Current farmer</span><strong id="offlineFarmer"></strong></div>
+              <div><span>Saved animals</span><strong id="offlineCount"></strong></div>
+              <div><span>Pending local changes</span><strong id="pendingChanges">0</strong></div>
+              <div><span>Last backup</span><strong id="lastBackup">Not yet</strong></div>
+            </div>
+            <div id="importMessage" class="import-message" hidden></div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <dialog id="animalDialog">
+      <form id="animalForm" method="dialog">
+        <div class="dialog-head"><div><span class="eyebrow">LIVESTOCK RECORD</span><h2 id="dialogTitle">Add animal</h2></div><button type="button" id="closeDialog" class="icon-button" aria-label="Close">×</button></div>
+        <input id="animalId" name="id" type="hidden" />
+        <div class="form-grid">
+          <label><span>Ear tag *</span><input id="animalTag" name="tag" required placeholder="e.g. NA-4182" /></label>
+          <label><span>Name</span><input id="animalName" name="name" placeholder="Optional name" /></label>
+          <label><span>Species *</span><select id="animalSpecies" name="species" required><option>Cattle</option><option>Sheep</option><option>Goat</option></select></label>
+          <label><span>Sex *</span><select id="animalSex" name="sex" required><option>Female</option><option>Male</option></select></label>
+          <label><span>Class *</span><select id="animalClass" name="classification" required></select></label>
+          <label><span>Breed</span><input id="animalBreed" name="breed" placeholder="e.g. Brahman cross" /></label>
+          <label><span>Birth date</span><input id="animalBirth" name="birthDate" type="date" /></label>
+          <label><span>Status</span><select id="animalStatus" name="status"><option>Active</option><option>Sold</option><option>Deceased</option></select></label>
+          <label><span>Stock brand</span><input id="animalBrand" name="stockBrand" placeholder="e.g. O695M" /></label>
+          <label><span>Registration</span><select id="animalRegistration" name="registrationStatus"><option>Registered</option><option>Pending</option><option>Not registered</option></select></label>
+          <label><span>Health status</span><select id="animalHealth" name="healthStatus"><option>Healthy</option><option>Needs attention</option><option>Under treatment</option></select></label>
+          <label><span>Body condition (1–5)</span><select id="animalCondition" name="conditionScore"><option value="">Not recorded</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+          <label><span>Sire</span><select id="animalSire" name="sireId"></select></label>
+          <label><span>Dam</span><select id="animalDam" name="damId"></select></label>
+          <div id="pedigreeCheck" class="pedigree-check span-2">Add both parents to run a close-relation check.</div>
+          <label class="span-2"><span>Notes</span><textarea id="animalNotes" name="notes" rows="3" placeholder="Health, ownership or field notes"></textarea></label>
+        </div>
+        <p id="formError" class="form-error" hidden></p>
+        <div class="dialog-actions"><button type="button" id="cancelDialog" class="secondary-button">Cancel</button><button class="primary-button" value="default">Save record</button></div>
+      </form>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

@@ -1,13 +1,14 @@
 {
   "name": "tfnn-backend",
-  "version": "1.0.0",
-  "description": "TFNN Farm Management System - REST API backend",
+  "version": "1.1.0",
+  "description": "TFNN Farm Management System - REST API and farmer portal",
   "main": "src/index.js",
   "type": "commonjs",
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "migrate": "node src/migrate.js"
+    "migrate": "node src/migrate.js",
+    "test": "node --test tests/*.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

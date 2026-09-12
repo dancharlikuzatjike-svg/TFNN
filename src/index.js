@@ -1,4 +1,5 @@
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 
@@ -22,18 +23,26 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/animals', animalRoutes);
 app.use('/api/v1/events', eventRoutes);
 app.use('/api/v1/tasks', taskRoutes);
-app.use('/api/v1', feedRoutes);   // feed.js defines /feed-listings and /feed-orders internally
-app.use('/api/v1', vetRoutes);    // vet.js defines /vets and /vet-requests internally
+app.use('/api/v1', feedRoutes);
+app.use('/api/v1', vetRoutes);
 app.use('/api/v1/admin', adminRoutes);
 
-// 404 for anything unmatched
-app.use((req, res) => res.status(404).json({ error: 'Not found' }));
+// The farmer portal is served by the same app as the API. This avoids a second
+// deployment and lets the frontend use secure same-origin /api/v1 requests.
+const publicDirectory = path.join(__dirname, '..', 'public');
+app.use(express.static(publicDirectory));
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) return next();
+  return res.sendFile(path.join(publicDirectory, 'index.html'));
+});
 
+// 404 for unmatched API requests.
+app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
-  console.log(`TFNN backend listening on port ${PORT}`);
+  console.log(`TFNN backend and farmer portal listening on port ${PORT}`);
 });
 
 module.exports = app;
