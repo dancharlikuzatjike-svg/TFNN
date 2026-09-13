@@ -12,6 +12,12 @@ test('farmer portal production files are present', () => {
   }
 });
 
+test('local secrets and installed packages cannot be committed', () => {
+  const gitignore = read('.gitignore');
+  assert.match(gitignore, /^\.env$/m);
+  assert.match(gitignore, /^node_modules\/$/m);
+});
+
 test('every JavaScript ID selector exists in the portal markup', () => {
   const html = read('public/index.html');
   const javascript = read('public/app.js');
