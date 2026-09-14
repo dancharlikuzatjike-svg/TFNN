@@ -123,3 +123,29 @@ ALTER TABLE animal_event ADD COLUMN IF NOT EXISTS superseded_by INT REFERENCES a
 
 CREATE INDEX IF NOT EXISTS idx_event_deleted ON animal_event(deleted_at);
 CREATE INDEX IF NOT EXISTS idx_event_superseded ON animal_event(superseded_by);
+-- Sales, valuation & expense soft-delete additions
+-- Append this to the BOTTOM of sql/schema.sql, then re-run your usual
+-- migrate step (Start Command -> `npm run migrate && npm start`, redeploy, revert).
+-- Safe to re-run: all statements are idempotent.
+
+CREATE TABLE IF NOT EXISTS sale (
+    sale_id        SERIAL PRIMARY KEY,
+    animal_id      INT NOT NULL REFERENCES animal(animal_id),
+    seller_id      INT NOT NULL REFERENCES users(user_id),
+    buyer_name     VARCHAR(150) NOT NULL,
+    buyer_user_id  INT REFERENCES users(user_id),
+    price          NUMERIC(10,2) NOT NULL,
+    sale_date      DATE NOT NULL DEFAULT CURRENT_DATE,
+    payment_status VARCHAR(20) DEFAULT 'Pending' CHECK (payment_status IN ('Pending','Paid','Partial','Cancelled')),
+    notes          TEXT,
+    deleted_at     TIMESTAMP,
+    created_at     TIMESTAMP DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_sale_seller ON sale(seller_id);
+CREATE INDEX IF NOT EXISTS idx_sale_animal ON sale(animal_id);
+
+-- A farmer's own estimate of what a live animal is currently worth
+ALTER TABLE animal ADD COLUMN IF NOT EXISTS estimated_value NUMERIC(10,2);
+
+-- expense never had soft delete - bringing it in line with the rest of the system
+ALTER TABLE expense ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
