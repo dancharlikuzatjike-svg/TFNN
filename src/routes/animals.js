@@ -157,4 +157,74 @@ router.get('/:id/lineage', async (req, res, next) => {
   }
 });
 
+// POST /api/v1/animals/:id/transfer-ownership
+// Moves an animal to a new farmer and logs it as an Ownership Transferred event
+// in the same transaction, so the animal row and the event history can never disagree.
+router.post('/:id/transfer-ownership', async (req, res, next) => {
+  const client = await db.pool.connect();
+  try {
+    const { new_owner_id, notes } = req.body;
+    if (!new_owner_id) {
+      return res.status(400).json({ error: 'new_owner_id is required' });
+    }
+
+    await client.query('BEGIN');
+
+    // Admins can transfer any animal; farmers can only transfer animals they currently own
+    const animalQuery = req.auth.role === 'admin'
+      ? await client.query('SELECT * FROM animal WHERE animal_id = $1 FOR UPDATE', [req.params.id])
+      : await client.query('SELECT * FROM animal WHERE animal_id = $1 AND owner_id = $2 FOR UPDATE', [req.params.id, req.auth.user_id]);
+
+    if (animalQuery.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Animal not found' });
+    }
+    const animal = animalQuery.rows[0];
+
+    if (animal.owner_id === Number(new_owner_id)) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Animal already belongs to that owner' });
+    }
+
+    const newOwner = await client.query(
+      `SELECT user_id FROM users WHERE user_id = $1 AND role = 'farmer' AND active = true`,
+      [new_owner_id]
+    );
+    if (newOwner.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'new_owner_id must be an active farmer account' });
+    }
+
+    const oldOwnerId = animal.owner_id;
+
+    const updated = await client.query(
+      `UPDATE animal SET owner_id = $1 WHERE animal_id = $2 RETURNING *`,
+      [new_owner_id, animal.animal_id]
+    );
+
+    await client.query(
+      `INSERT INTO animal_event (animal_id, event_date, event_type, notes, metadata, created_by)
+       VALUES ($1, CURRENT_DATE, 'Ownership Transferred', $2, $3, $4)`,
+      [
+        animal.animal_id,
+        notes || null,
+        JSON.stringify({ from_owner_id: oldOwnerId, to_owner_id: Number(new_owner_id) }),
+        req.auth.user_id,
+      ]
+    );
+
+    await client.query('COMMIT');
+    res.json({ animal: updated.rows[0] });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    // Target farmer already has an animal registered under this tag number
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'The new owner already has an animal with this tag number' });
+    }
+    next(err);
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;
