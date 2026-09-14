@@ -112,3 +112,14 @@ CREATE TABLE IF NOT EXISTS vet_request (
 );
 CREATE INDEX IF NOT EXISTS idx_vetreq_farmer ON vet_request(farmer_id);
 CREATE INDEX IF NOT EXISTS idx_vetreq_status ON vet_request(status);
+-- Record-keeping improvements for animal_event
+-- Append this to the BOTTOM of sql/schema.sql, then re-run your usual
+-- migrate step (temporarily set Start Command to `npm run migrate && npm start`
+-- on Render, redeploy, then revert). Safe to re-run: all statements are idempotent.
+
+ALTER TABLE animal_event ADD COLUMN IF NOT EXISTS metadata JSONB;
+ALTER TABLE animal_event ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
+ALTER TABLE animal_event ADD COLUMN IF NOT EXISTS superseded_by INT REFERENCES animal_event(event_id);
+
+CREATE INDEX IF NOT EXISTS idx_event_deleted ON animal_event(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_event_superseded ON animal_event(superseded_by);
