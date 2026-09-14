@@ -149,3 +149,11 @@ ALTER TABLE animal ADD COLUMN IF NOT EXISTS estimated_value NUMERIC(10,2);
 
 -- expense never had soft delete - bringing it in line with the rest of the system
 ALTER TABLE expense ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
+-- Auto-generated task tracking additions
+-- Append this to the BOTTOM of sql/schema.sql, then re-run your usual
+-- migrate step (Start Command -> `npm run migrate && npm start`, redeploy, revert).
+-- Safe to re-run: all statements are idempotent.
+
+ALTER TABLE task ADD COLUMN IF NOT EXISTS ref_type VARCHAR(20);
+ALTER TABLE task ADD COLUMN IF NOT EXISTS ref_id INT;
+CREATE INDEX IF NOT EXISTS idx_task_ref ON task(ref_type, ref_id);
