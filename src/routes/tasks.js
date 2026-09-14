@@ -5,9 +5,78 @@ const { requireAuth } = require('../middleware/auth');
 const router = express.Router();
 router.use(requireAuth);
 
+// Scans for anything that should now have a task, and inserts one if it
+// doesn't already exist for that exact trigger (ref_type + ref_id). Safe to
+// call repeatedly - NOT EXISTS guards against duplicate inserts on refresh.
+async function generateAutoTasks(farmerId) {
+  // 1. Any event carrying a metadata.next_due_date that has now passed
+  //    (works for vaccinations, dosing, checkups - anything recurring)
+  await db.query(
+    `INSERT INTO task (farmer_id, title, due_date, source, ref_type, ref_id)
+     SELECT a.owner_id,
+            e.event_type || ' follow-up due — ' || a.tag_number,
+            (e.metadata->>'next_due_date')::date,
+            'auto',
+            'animal_event',
+            e.event_id
+     FROM animal_event e
+     JOIN animal a ON a.animal_id = e.animal_id
+     WHERE a.owner_id = $1
+       AND a.status = 'Active'
+       AND e.deleted_at IS NULL
+       AND e.superseded_by IS NULL
+       AND e.metadata->>'next_due_date' IS NOT NULL
+       AND (e.metadata->>'next_due_date')::date <= CURRENT_DATE
+       AND NOT EXISTS (
+         SELECT 1 FROM task t WHERE t.ref_type = 'animal_event' AND t.ref_id = e.event_id
+       )`,
+    [farmerId]
+  );
+
+  // 2. Feed orders stuck in Requested for 5+ days
+  await db.query(
+    `INSERT INTO task (farmer_id, title, due_date, source, ref_type, ref_id)
+     SELECT fo.farmer_id,
+            'Feed order #' || fo.order_id || ' still Requested — follow up with supplier',
+            CURRENT_DATE,
+            'auto',
+            'feed_order',
+            fo.order_id
+     FROM feed_order fo
+     WHERE fo.farmer_id = $1
+       AND fo.status = 'Requested'
+       AND fo.created_at < now() - INTERVAL '5 days'
+       AND NOT EXISTS (
+         SELECT 1 FROM task t WHERE t.ref_type = 'feed_order' AND t.ref_id = fo.order_id
+       )`,
+    [farmerId]
+  );
+
+  // 3. Vet requests stuck Pending for 2+ days
+  await db.query(
+    `INSERT INTO task (farmer_id, title, due_date, source, ref_type, ref_id)
+     SELECT vr.farmer_id,
+            'Vet request still Pending — consider escalating',
+            CURRENT_DATE,
+            'auto',
+            'vet_request',
+            vr.request_id
+     FROM vet_request vr
+     WHERE vr.farmer_id = $1
+       AND vr.status = 'Pending'
+       AND vr.created_at < now() - INTERVAL '2 days'
+       AND NOT EXISTS (
+         SELECT 1 FROM task t WHERE t.ref_type = 'vet_request' AND t.ref_id = vr.request_id
+       )`,
+    [farmerId]
+  );
+}
+
 // GET /api/v1/tasks?done=false
 router.get('/', async (req, res, next) => {
   try {
+    await generateAutoTasks(req.auth.user_id);
+
     const conditions = ['farmer_id = $1'];
     const params = [req.auth.user_id];
 
