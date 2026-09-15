@@ -49,17 +49,25 @@ router.get('/:id', async (req, res, next) => {
 });
 
 // POST /api/v1/sales - records a sale, marks the animal Sold, and logs an animal_event,
-// all in one transaction so the three can never drift out of sync.
+// all in one transaction so the three can never drift out of sync. client_id covers
+// the whole action: a retried offline sale just returns the sale that already happened.
 router.post('/', async (req, res, next) => {
   const client = await db.pool.connect();
   try {
-    const { animal_id, buyer_name, buyer_user_id, price, sale_date, payment_status, notes } = req.body;
+    const { animal_id, buyer_name, buyer_user_id, price, sale_date, payment_status, notes, client_id } = req.body;
 
     if (!animal_id || !buyer_name || price === undefined) {
       return res.status(400).json({ error: 'animal_id, buyer_name and price are required' });
     }
     if (payment_status && !PAYMENT_STATUSES.includes(payment_status)) {
       return res.status(400).json({ error: `payment_status must be one of: ${PAYMENT_STATUSES.join(', ')}` });
+    }
+
+    if (client_id) {
+      const already = await client.query('SELECT * FROM sale WHERE client_id = $1', [client_id]);
+      if (already.rows.length > 0) {
+        return res.status(200).json({ sale: already.rows[0] });
+      }
     }
 
     await client.query('BEGIN');
@@ -79,10 +87,10 @@ router.post('/', async (req, res, next) => {
     }
 
     const sale = await client.query(
-      `INSERT INTO sale (animal_id, seller_id, buyer_name, buyer_user_id, price, sale_date, payment_status, notes)
-       VALUES ($1, $2, $3, $4, $5, COALESCE($6, CURRENT_DATE), COALESCE($7, 'Pending'), $8)
+      `INSERT INTO sale (animal_id, seller_id, buyer_name, buyer_user_id, price, sale_date, payment_status, notes, client_id)
+       VALUES ($1, $2, $3, $4, $5, COALESCE($6, CURRENT_DATE), COALESCE($7, 'Pending'), $8, $9)
        RETURNING *`,
-      [animal_id, req.auth.user_id, buyer_name, buyer_user_id || null, price, sale_date || null, payment_status || null, notes || null]
+      [animal_id, req.auth.user_id, buyer_name, buyer_user_id || null, price, sale_date || null, payment_status || null, notes || null, client_id || null]
     );
 
     await client.query(`UPDATE animal SET status = 'Sold' WHERE animal_id = $1`, [animal_id]);
@@ -103,6 +111,10 @@ router.post('/', async (req, res, next) => {
     res.status(201).json({ sale: sale.rows[0] });
   } catch (err) {
     await client.query('ROLLBACK');
+    if (err.code === '23505' && req.body.client_id) {
+      const already = await client.query('SELECT * FROM sale WHERE client_id = $1', [req.body.client_id]);
+      if (already.rows.length > 0) return res.status(200).json({ sale: already.rows[0] });
+    }
     next(err);
   } finally {
     client.release();
