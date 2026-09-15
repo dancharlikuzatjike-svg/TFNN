@@ -176,3 +176,22 @@ CREATE TABLE IF NOT EXISTS media (
 );
 CREATE INDEX IF NOT EXISTS idx_media_ref ON media(ref_type, ref_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_media_client_id ON media(client_id);
+-- Farmer-to-farmer marketplace listings
+-- Append this to the BOTTOM of sql/schema.sql, then re-run your usual
+-- migrate step (Start Command -> `npm run migrate && npm start`, redeploy, revert).
+-- Safe to re-run: all statements are idempotent.
+
+CREATE TABLE IF NOT EXISTS marketplace_listing (
+    listing_id   SERIAL PRIMARY KEY,
+    animal_id    INT NOT NULL REFERENCES animal(animal_id),
+    seller_id    INT NOT NULL REFERENCES users(user_id),
+    asking_price NUMERIC(10,2),
+    description  TEXT,
+    status       VARCHAR(20) DEFAULT 'Open' CHECK (status IN ('Open','Reserved','Sold','Cancelled')),
+    client_id    UUID,
+    created_at   TIMESTAMP DEFAULT now(),
+    updated_at   TIMESTAMP DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_listing_seller ON marketplace_listing(seller_id);
+CREATE INDEX IF NOT EXISTS idx_listing_status ON marketplace_listing(status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_listing_client_id ON marketplace_listing(client_id);
