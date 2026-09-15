@@ -36,22 +36,35 @@ router.get('/', async (req, res, next) => {
 });
 
 // POST /api/v1/expenses
+// client_id makes a retried offline write safe: the same expense is returned
+// instead of being logged twice.
 router.post('/', async (req, res, next) => {
   try {
-    const { amount, category, description, expense_date, ref_type, ref_id } = req.body;
+    const { amount, category, description, expense_date, ref_type, ref_id, client_id } = req.body;
 
     if (amount === undefined) {
       return res.status(400).json({ error: 'amount is required' });
     }
 
+    if (client_id) {
+      const existing = await db.query('SELECT * FROM expense WHERE client_id = $1', [client_id]);
+      if (existing.rows.length > 0) {
+        return res.status(200).json({ expense: existing.rows[0] });
+      }
+    }
+
     const result = await db.query(
-      `INSERT INTO expense (farmer_id, amount, category, description, expense_date, ref_type, ref_id)
-       VALUES ($1, $2, $3, $4, COALESCE($5, CURRENT_DATE), $6, $7)
+      `INSERT INTO expense (farmer_id, amount, category, description, expense_date, ref_type, ref_id, client_id)
+       VALUES ($1, $2, $3, $4, COALESCE($5, CURRENT_DATE), $6, $7, $8)
        RETURNING *`,
-      [req.auth.user_id, amount, category || null, description || null, expense_date || null, ref_type || null, ref_id || null]
+      [req.auth.user_id, amount, category || null, description || null, expense_date || null, ref_type || null, ref_id || null, client_id || null]
     );
     res.status(201).json({ expense: result.rows[0] });
   } catch (err) {
+    if (err.code === '23505' && req.body.client_id) {
+      const existing = await db.query('SELECT * FROM expense WHERE client_id = $1', [req.body.client_id]);
+      if (existing.rows.length > 0) return res.status(200).json({ expense: existing.rows[0] });
+    }
     next(err);
   }
 });
