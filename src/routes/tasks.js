@@ -124,17 +124,31 @@ router.get('/suggested', async (req, res, next) => {
 });
 
 // POST /api/v1/tasks
+// client_id makes a retried offline write safe: the same task is returned
+// instead of being created twice. (Auto-generated tasks already dedupe via
+// ref_type/ref_id in generateAutoTasks above, so they don't need this.)
 router.post('/', async (req, res, next) => {
   try {
-    const { title, due_date } = req.body;
+    const { title, due_date, client_id } = req.body;
     if (!title) return res.status(400).json({ error: 'title is required' });
 
+    if (client_id) {
+      const existing = await db.query('SELECT * FROM task WHERE client_id = $1', [client_id]);
+      if (existing.rows.length > 0) {
+        return res.status(200).json({ task: existing.rows[0] });
+      }
+    }
+
     const result = await db.query(
-      `INSERT INTO task (farmer_id, title, due_date) VALUES ($1, $2, $3) RETURNING *`,
-      [req.auth.user_id, title, due_date || null]
+      `INSERT INTO task (farmer_id, title, due_date, client_id) VALUES ($1, $2, $3, $4) RETURNING *`,
+      [req.auth.user_id, title, due_date || null, client_id || null]
     );
     res.status(201).json({ task: result.rows[0] });
   } catch (err) {
+    if (err.code === '23505' && req.body.client_id) {
+      const existing = await db.query('SELECT * FROM task WHERE client_id = $1', [req.body.client_id]);
+      if (existing.rows.length > 0) return res.status(200).json({ task: existing.rows[0] });
+    }
     next(err);
   }
 });
@@ -174,26 +188,3 @@ router.delete('/:id', async (req, res, next) => {
 });
 
 module.exports = router;
--- Idempotency-key support for offline-first sync
--- Append this to the BOTTOM of sql/schema.sql, then re-run your usual
--- migrate step (Start Command -> `npm run migrate && npm start`, redeploy, revert).
--- Safe to re-run: all statements are idempotent.
---
--- client_id is a UUID the app generates on-device before sending a request.
--- Multiple NULLs are allowed by a unique index (server-side/legacy writes
--- that don't send one), but two rows can never share the same non-null value.
-
-ALTER TABLE animal ADD COLUMN IF NOT EXISTS client_id UUID;
-CREATE UNIQUE INDEX IF NOT EXISTS idx_animal_client_id ON animal(client_id);
-
-ALTER TABLE animal_event ADD COLUMN IF NOT EXISTS client_id UUID;
-CREATE UNIQUE INDEX IF NOT EXISTS idx_event_client_id ON animal_event(client_id);
-
-ALTER TABLE sale ADD COLUMN IF NOT EXISTS client_id UUID;
-CREATE UNIQUE INDEX IF NOT EXISTS idx_sale_client_id ON sale(client_id);
-
-ALTER TABLE expense ADD COLUMN IF NOT EXISTS client_id UUID;
-CREATE UNIQUE INDEX IF NOT EXISTS idx_expense_client_id ON expense(client_id);
-
-ALTER TABLE task ADD COLUMN IF NOT EXISTS client_id UUID;
-CREATE UNIQUE INDEX IF NOT EXISTS idx_task_client_id ON task(client_id);
