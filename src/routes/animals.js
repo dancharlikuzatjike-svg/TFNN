@@ -27,23 +27,37 @@ router.get('/', async (req, res, next) => {
 });
 
 // POST /api/v1/animals
+// Accepts an optional client_id (UUID generated on-device) so a retried offline
+// write never creates a duplicate animal - it just returns the one already made.
 router.post('/', async (req, res, next) => {
   try {
-    const { tag_number, species, breed, class: cls, date_of_birth, mother_id, father_id } = req.body;
+    const { tag_number, species, breed, class: cls, date_of_birth, mother_id, father_id, client_id } = req.body;
 
     if (!tag_number || !species) {
       return res.status(400).json({ error: 'tag_number and species are required' });
     }
 
+    if (client_id) {
+      const existing = await db.query('SELECT * FROM animal WHERE client_id = $1', [client_id]);
+      if (existing.rows.length > 0) {
+        return res.status(200).json({ animal: existing.rows[0] });
+      }
+    }
+
     const result = await db.query(
-      `INSERT INTO animal (tag_number, species, breed, class, date_of_birth, owner_id, mother_id, father_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO animal (tag_number, species, breed, class, date_of_birth, owner_id, mother_id, father_id, client_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
       [tag_number, species, breed || null, cls || null, date_of_birth || null,
-       req.auth.user_id, mother_id || null, father_id || null]
+       req.auth.user_id, mother_id || null, father_id || null, client_id || null]
     );
     res.status(201).json({ animal: result.rows[0] });
   } catch (err) {
+    // A racing duplicate retry can hit the unique index instead of the check above
+    if (err.code === '23505' && req.body.client_id) {
+      const existing = await db.query('SELECT * FROM animal WHERE client_id = $1', [req.body.client_id]);
+      if (existing.rows.length > 0) return res.status(200).json({ animal: existing.rows[0] });
+    }
     next(err);
   }
 });
@@ -79,7 +93,7 @@ router.patch('/:id', async (req, res, next) => {
     const animal = await findOwnedAnimal(req.params.id, req.auth.user_id);
     if (!animal) return res.status(404).json({ error: 'Animal not found' });
 
-    const allowedFields = ['tag_number', 'species', 'breed', 'class', 'date_of_birth', 'mother_id', 'father_id', 'status'];
+    const allowedFields = ['tag_number', 'species', 'breed', 'class', 'date_of_birth', 'mother_id', 'father_id', 'status', 'estimated_value'];
     const updates = [];
     const params = [];
 
@@ -160,12 +174,22 @@ router.get('/:id/lineage', async (req, res, next) => {
 // POST /api/v1/animals/:id/transfer-ownership
 // Moves an animal to a new farmer and logs it as an Ownership Transferred event
 // in the same transaction, so the animal row and the event history can never disagree.
+// client_id covers the whole action: retrying with the same client_id after a
+// dropped connection just returns the transfer that already happened.
 router.post('/:id/transfer-ownership', async (req, res, next) => {
   const client = await db.pool.connect();
   try {
-    const { new_owner_id, notes } = req.body;
+    const { new_owner_id, notes, client_id } = req.body;
     if (!new_owner_id) {
       return res.status(400).json({ error: 'new_owner_id is required' });
+    }
+
+    if (client_id) {
+      const already = await client.query('SELECT animal_id FROM animal_event WHERE client_id = $1', [client_id]);
+      if (already.rows.length > 0) {
+        const animalNow = await client.query('SELECT * FROM animal WHERE animal_id = $1', [already.rows[0].animal_id]);
+        return res.status(200).json({ animal: animalNow.rows[0] });
+      }
     }
 
     await client.query('BEGIN');
@@ -203,13 +227,14 @@ router.post('/:id/transfer-ownership', async (req, res, next) => {
     );
 
     await client.query(
-      `INSERT INTO animal_event (animal_id, event_date, event_type, notes, metadata, created_by)
-       VALUES ($1, CURRENT_DATE, 'Ownership Transferred', $2, $3, $4)`,
+      `INSERT INTO animal_event (animal_id, event_date, event_type, notes, metadata, created_by, client_id)
+       VALUES ($1, CURRENT_DATE, 'Ownership Transferred', $2, $3, $4, $5)`,
       [
         animal.animal_id,
         notes || null,
         JSON.stringify({ from_owner_id: oldOwnerId, to_owner_id: Number(new_owner_id) }),
         req.auth.user_id,
+        client_id || null,
       ]
     );
 
@@ -217,7 +242,13 @@ router.post('/:id/transfer-ownership', async (req, res, next) => {
     res.json({ animal: updated.rows[0] });
   } catch (err) {
     await client.query('ROLLBACK');
-    // Target farmer already has an animal registered under this tag number
+    if (err.code === '23505' && err.constraint === 'idx_event_client_id' && req.body.client_id) {
+      const already = await client.query('SELECT animal_id FROM animal_event WHERE client_id = $1', [req.body.client_id]);
+      if (already.rows.length > 0) {
+        const animalNow = await client.query('SELECT * FROM animal WHERE animal_id = $1', [already.rows[0].animal_id]);
+        return res.status(200).json({ animal: animalNow.rows[0] });
+      }
+    }
     if (err.code === '23505') {
       return res.status(409).json({ error: 'The new owner already has an animal with this tag number' });
     }
