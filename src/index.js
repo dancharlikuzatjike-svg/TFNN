@@ -37,3 +37,5 @@ app.listen(PORT, () => {
 });
 
 module.exports = app;
+const marketplaceRoutes = require('./routes/marketplace');
+app.use('/api/v1/marketplace', marketplaceRoutes);
