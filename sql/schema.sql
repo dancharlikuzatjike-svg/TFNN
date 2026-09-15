@@ -195,3 +195,25 @@ CREATE TABLE IF NOT EXISTS marketplace_listing (
 CREATE INDEX IF NOT EXISTS idx_listing_seller ON marketplace_listing(seller_id);
 CREATE INDEX IF NOT EXISTS idx_listing_status ON marketplace_listing(status);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_listing_client_id ON marketplace_listing(client_id);
+-- District field + outbreak alerts
+-- Append this to the BOTTOM of sql/schema.sql, then re-run your usual
+-- migrate step (Start Command -> `npm run migrate && npm start`, redeploy, revert).
+-- Safe to re-run: all statements are idempotent.
+
+-- Structured region, separate from the free-text farm_location, so price
+-- aggregation and alerts can be reliably grouped/filtered by district.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS district VARCHAR(30);
+
+CREATE TABLE IF NOT EXISTS district_alert (
+    alert_id     SERIAL PRIMARY KEY,
+    district     VARCHAR(30) NOT NULL,
+    title        VARCHAR(150) NOT NULL,
+    description  TEXT,
+    severity     VARCHAR(20) DEFAULT 'Advisory' CHECK (severity IN ('Advisory','Warning','Emergency')),
+    status       VARCHAR(20) DEFAULT 'Active' CHECK (status IN ('Active','Resolved')),
+    posted_by    INT NOT NULL REFERENCES users(user_id),
+    expires_at   TIMESTAMP,
+    created_at   TIMESTAMP DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_alert_district ON district_alert(district);
+CREATE INDEX IF NOT EXISTS idx_alert_status ON district_alert(status);
