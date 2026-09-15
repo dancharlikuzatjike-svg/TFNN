@@ -49,4 +49,23 @@ router.patch('/me', async (req, res, next) => {
   }
 });
 
+// GET /api/v1/users/lookup?phone= - find another farmer's user_id by phone number.
+// Used for marketplace: a seller calls the buyer, then looks them up to record the sale.
+// Deliberately returns only what's needed to complete that - no other profile data.
+router.get('/lookup', async (req, res, next) => {
+  try {
+    const { phone } = req.query;
+    if (!phone) return res.status(400).json({ error: 'phone is required' });
+
+    const result = await db.query(
+      `SELECT user_id, name FROM users WHERE phone = $1 AND role = 'farmer' AND active = true AND approved = true`,
+      [phone]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'No active farmer found with that phone number' });
+    res.json({ user: result.rows[0] });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
