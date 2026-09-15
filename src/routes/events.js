@@ -14,7 +14,6 @@ router.get('/', async (req, res, next) => {
     const conditions = ['a.owner_id = $1', 'e.superseded_by IS NULL'];
     const params = [req.auth.user_id];
 
-    // Only admins can ask to see soft-deleted events; everyone else always gets the live view
     if (!(include_deleted === 'true' && req.auth.role === 'admin')) {
       conditions.push('e.deleted_at IS NULL');
     }
@@ -38,15 +37,24 @@ router.get('/', async (req, res, next) => {
 });
 
 // POST /api/v1/events
+// client_id makes a retried offline write safe: if this exact event was already
+// logged, the same row is returned instead of a duplicate being created.
 router.post('/', async (req, res, next) => {
   try {
-    const { animal_id, event_date, event_type, notes, metadata } = req.body;
+    const { animal_id, event_date, event_type, notes, metadata, client_id } = req.body;
 
     if (!animal_id || !event_date || !event_type) {
       return res.status(400).json({ error: 'animal_id, event_date and event_type are required' });
     }
     if (!EVENT_TYPES.includes(event_type)) {
       return res.status(400).json({ error: `event_type must be one of: ${EVENT_TYPES.join(', ')}` });
+    }
+
+    if (client_id) {
+      const existing = await db.query('SELECT * FROM animal_event WHERE client_id = $1', [client_id]);
+      if (existing.rows.length > 0) {
+        return res.status(200).json({ event: existing.rows[0] });
+      }
     }
 
     // Confirm the animal actually belongs to this farmer before logging anything against it
@@ -56,12 +64,16 @@ router.post('/', async (req, res, next) => {
     }
 
     const result = await db.query(
-      `INSERT INTO animal_event (animal_id, event_date, event_type, notes, metadata, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [animal_id, event_date, event_type, notes || null, metadata ? JSON.stringify(metadata) : null, req.auth.user_id]
+      `INSERT INTO animal_event (animal_id, event_date, event_type, notes, metadata, created_by, client_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [animal_id, event_date, event_type, notes || null, metadata ? JSON.stringify(metadata) : null, req.auth.user_id, client_id || null]
     );
     res.status(201).json({ event: result.rows[0] });
   } catch (err) {
+    if (err.code === '23505' && req.body.client_id) {
+      const existing = await db.query('SELECT * FROM animal_event WHERE client_id = $1', [req.body.client_id]);
+      if (existing.rows.length > 0) return res.status(200).json({ event: existing.rows[0] });
+    }
     next(err);
   }
 });
@@ -93,8 +105,6 @@ router.get('/:id/history', async (req, res, next) => {
     );
     if (owned.rows.length === 0) return res.status(404).json({ error: 'Event not found' });
 
-    // Corrections always keep the same animal_id, so once we've confirmed ownership
-    // of one event in the chain we can trace the rest without re-joining on animal.
     const result = await db.query(
       `WITH RECURSIVE chain AS (
          SELECT * FROM animal_event WHERE event_id = $1
@@ -113,13 +123,21 @@ router.get('/:id/history', async (req, res, next) => {
 
 // PATCH /api/v1/events/:id - corrects an event non-destructively: the old row is
 // marked superseded (never overwritten) and a new row is inserted with the fix.
-// animal_id can never change on a correction; event_date/event_type/notes/metadata can.
+// client_id makes a retried correction idempotent: if it already went through,
+// this short-circuits and returns that same corrected event.
 router.patch('/:id', async (req, res, next) => {
   const client = await db.pool.connect();
   try {
-    const { event_date, event_type, notes, metadata } = req.body;
+    const { event_date, event_type, notes, metadata, client_id } = req.body;
     if (event_type && !EVENT_TYPES.includes(event_type)) {
       return res.status(400).json({ error: `event_type must be one of: ${EVENT_TYPES.join(', ')}` });
+    }
+
+    if (client_id) {
+      const already = await client.query('SELECT * FROM animal_event WHERE client_id = $1', [client_id]);
+      if (already.rows.length > 0) {
+        return res.status(200).json({ event: already.rows[0] });
+      }
     }
 
     await client.query('BEGIN');
@@ -138,8 +156,8 @@ router.patch('/:id', async (req, res, next) => {
     const old = existing.rows[0];
 
     const inserted = await client.query(
-      `INSERT INTO animal_event (animal_id, event_date, event_type, notes, metadata, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      `INSERT INTO animal_event (animal_id, event_date, event_type, notes, metadata, created_by, client_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
       [
         old.animal_id,
         event_date || old.event_date,
@@ -147,6 +165,7 @@ router.patch('/:id', async (req, res, next) => {
         notes !== undefined ? notes : old.notes,
         metadata !== undefined ? JSON.stringify(metadata) : old.metadata,
         req.auth.user_id,
+        client_id || null,
       ]
     );
 
@@ -156,6 +175,12 @@ router.patch('/:id', async (req, res, next) => {
     res.json({ event: inserted.rows[0] });
   } catch (err) {
     await client.query('ROLLBACK');
+    if (err.code === '23505' && req.body.client_id) {
+      const already = await client.query('SELECT * FROM animal_event WHERE client_id = $1', [req.body.client_id]);
+      if (already.rows.length > 0) {
+        return res.status(200).json({ event: already.rows[0] });
+      }
+    }
     next(err);
   } finally {
     client.release();
