@@ -240,4 +240,12 @@ ALTER TABLE media ADD COLUMN IF NOT EXISTS client_id UUID;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_media_client_id ON media(client_id);
 
 ALTER TABLE marketplace_listing ADD COLUMN IF NOT EXISTS client_id UUID;
-CREATE UNIQUE INDEX IF NOT EXISTS idx_listing_client_id ON marketplace_listing(client_id);
+-- Account approval gate for supplier/vet roles
+-- Append this to the BOTTOM of sql/schema.sql, then re-run your usual
+-- migrate step (Start Command -> `npm run migrate && npm start`, redeploy, revert).
+-- Safe to re-run: all statements are idempotent.
+--
+-- Default true so every existing user (all currently-trusted farmers/suppliers/
+-- vets already in the database) keeps working without being locked out.
+-- New supplier/vet signups explicitly get approved=false at insert time.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS approved BOOLEAN NOT NULL DEFAULT true;CREATE UNIQUE INDEX IF NOT EXISTS idx_listing_client_id ON marketplace_listing(client_id);
