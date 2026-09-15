@@ -174,3 +174,26 @@ router.delete('/:id', async (req, res, next) => {
 });
 
 module.exports = router;
+-- Idempotency-key support for offline-first sync
+-- Append this to the BOTTOM of sql/schema.sql, then re-run your usual
+-- migrate step (Start Command -> `npm run migrate && npm start`, redeploy, revert).
+-- Safe to re-run: all statements are idempotent.
+--
+-- client_id is a UUID the app generates on-device before sending a request.
+-- Multiple NULLs are allowed by a unique index (server-side/legacy writes
+-- that don't send one), but two rows can never share the same non-null value.
+
+ALTER TABLE animal ADD COLUMN IF NOT EXISTS client_id UUID;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_animal_client_id ON animal(client_id);
+
+ALTER TABLE animal_event ADD COLUMN IF NOT EXISTS client_id UUID;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_event_client_id ON animal_event(client_id);
+
+ALTER TABLE sale ADD COLUMN IF NOT EXISTS client_id UUID;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sale_client_id ON sale(client_id);
+
+ALTER TABLE expense ADD COLUMN IF NOT EXISTS client_id UUID;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_expense_client_id ON expense(client_id);
+
+ALTER TABLE task ADD COLUMN IF NOT EXISTS client_id UUID;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_task_client_id ON task(client_id);
