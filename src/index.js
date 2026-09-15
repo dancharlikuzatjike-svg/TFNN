@@ -1,7 +1,9 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-
+const userRoutes = require('./routes/users');
+const marketRoutes = require('./routes/market');
+const alertRoutes = require('./routes/alerts');
 const authRoutes = require('./routes/auth');
 const animalRoutes = require('./routes/animals');
 const eventRoutes = require('./routes/events');
@@ -25,7 +27,9 @@ app.use('/api/v1/tasks', taskRoutes);
 app.use('/api/v1', feedRoutes);   // feed.js defines /feed-listings and /feed-orders internally
 app.use('/api/v1', vetRoutes);    // vet.js defines /vets and /vet-requests internally
 app.use('/api/v1/admin', adminRoutes);
-
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/market-prices', marketRoutes);
+app.use('/api/v1/alerts', alertRoutes);
 // 404 for anything unmatched
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 
