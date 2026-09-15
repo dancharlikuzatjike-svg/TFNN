@@ -217,3 +217,27 @@ CREATE TABLE IF NOT EXISTS district_alert (
 );
 CREATE INDEX IF NOT EXISTS idx_alert_district ON district_alert(district);
 CREATE INDEX IF NOT EXISTS idx_alert_status ON district_alert(status);
+-- Consolidated client_id fix - covers every table the deployed code expects
+-- a client_id column on. Safe to run even if some of these were already
+-- applied individually before; every statement is idempotent.
+
+ALTER TABLE animal ADD COLUMN IF NOT EXISTS client_id UUID;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_animal_client_id ON animal(client_id);
+
+ALTER TABLE animal_event ADD COLUMN IF NOT EXISTS client_id UUID;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_event_client_id ON animal_event(client_id);
+
+ALTER TABLE sale ADD COLUMN IF NOT EXISTS client_id UUID;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sale_client_id ON sale(client_id);
+
+ALTER TABLE expense ADD COLUMN IF NOT EXISTS client_id UUID;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_expense_client_id ON expense(client_id);
+
+ALTER TABLE task ADD COLUMN IF NOT EXISTS client_id UUID;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_task_client_id ON task(client_id);
+
+ALTER TABLE media ADD COLUMN IF NOT EXISTS client_id UUID;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_media_client_id ON media(client_id);
+
+ALTER TABLE marketplace_listing ADD COLUMN IF NOT EXISTS client_id UUID;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_listing_client_id ON marketplace_listing(client_id);
