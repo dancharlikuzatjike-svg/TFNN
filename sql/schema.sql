@@ -157,3 +157,22 @@ ALTER TABLE expense ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
 ALTER TABLE task ADD COLUMN IF NOT EXISTS ref_type VARCHAR(20);
 ALTER TABLE task ADD COLUMN IF NOT EXISTS ref_id INT;
 CREATE INDEX IF NOT EXISTS idx_task_ref ON task(ref_type, ref_id);
+-- Photo and voice note attachments
+-- Append this to the BOTTOM of sql/schema.sql, then re-run your usual
+-- migrate step (Start Command -> `npm run migrate && npm start`, redeploy, revert).
+-- Safe to re-run: all statements are idempotent.
+
+CREATE TABLE IF NOT EXISTS media (
+    media_id    SERIAL PRIMARY KEY,
+    owner_id    INT NOT NULL REFERENCES users(user_id),
+    ref_type    VARCHAR(20) NOT NULL CHECK (ref_type IN ('animal','animal_event')),
+    ref_id      INT NOT NULL,
+    kind        VARCHAR(10) NOT NULL CHECK (kind IN ('photo','voice')),
+    mime_type   VARCHAR(50) NOT NULL,
+    data        BYTEA NOT NULL,
+    size_bytes  INT NOT NULL,
+    client_id   UUID,
+    created_at  TIMESTAMP DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_media_ref ON media(ref_type, ref_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_media_client_id ON media(client_id);
