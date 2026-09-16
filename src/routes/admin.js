@@ -5,6 +5,8 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 const router = express.Router();
 router.use(requireAuth, requireRole('admin'));
 
+const VALID_ROLES = ['farmer', 'admin', 'supplier', 'vet'];
+
 // GET /api/v1/admin/animals?farmer_id=&species=
 router.get('/animals', async (req, res, next) => {
   try {
@@ -47,7 +49,7 @@ router.get('/stats', async (req, res, next) => {
 router.get('/users', async (req, res, next) => {
   try {
     const result = await db.query(
-      'SELECT user_id, name, phone, role, farm_location, active, created_at FROM users ORDER BY created_at DESC'
+      'SELECT user_id, name, phone, role, farm_location, district, active, approved, created_at FROM users ORDER BY created_at DESC'
     );
     res.json({ users: result.rows });
   } catch (err) {
@@ -55,15 +57,38 @@ router.get('/users', async (req, res, next) => {
   }
 });
 
-// PATCH /api/v1/admin/users/:id - suspend or reactivate an account
+// GET /api/v1/admin/users/pending - accounts awaiting approval (supplier/vet signups)
+router.get('/users/pending', async (req, res, next) => {
+  try {
+    const result = await db.query(
+      `SELECT user_id, name, phone, role, farm_location, created_at
+       FROM users WHERE approved = false ORDER BY created_at ASC`
+    );
+    res.json({ users: result.rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /api/v1/admin/users/:id - suspend/reactivate, approve, or change role
 router.patch('/users/:id', async (req, res, next) => {
   try {
-    const { active } = req.body;
-    if (active === undefined) return res.status(400).json({ error: 'active is required' });
+    const { active, approved, role } = req.body;
+    if (active === undefined && approved === undefined && role === undefined) {
+      return res.status(400).json({ error: 'At least one of active, approved, or role is required' });
+    }
+    if (role && !VALID_ROLES.includes(role)) {
+      return res.status(400).json({ error: `role must be one of: ${VALID_ROLES.join(', ')}` });
+    }
 
     const result = await db.query(
-      'UPDATE users SET active = $1 WHERE user_id = $2 RETURNING user_id, name, phone, role, active',
-      [active, req.params.id]
+      `UPDATE users SET
+         active = COALESCE($1, active),
+         approved = COALESCE($2, approved),
+         role = COALESCE($3, role)
+       WHERE user_id = $4
+       RETURNING user_id, name, phone, role, farm_location, active, approved`,
+      [active, approved, role, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
     res.json({ user: result.rows[0] });
