@@ -1,0 +1,50 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: tfnn
+          POSTGRES_PASSWORD: tfnn
+          POSTGRES_DB: tfnn_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://tfnn:tfnn@localhost:5432/tfnn_test
+      # PLACEHOLDER NAMES - Claude has not seen utils/jwt.js and is guessing.
+      # Update these two to match whatever env vars jwt.js actually reads.
+      JWT_SECRET: test-jwt-secret-not-for-production
+      JWT_REFRESH_SECRET: test-refresh-secret-not-for-production
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Apply database schema
+        run: npm run migrate
+
+      - name: Run tests
+        run: npm test
