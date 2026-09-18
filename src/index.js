@@ -49,9 +49,14 @@ app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`TFNN backend listening on port ${PORT}`);
-});
+// Only actually start listening when this file is run directly (npm start).
+// When required by the test suite, we just want the app object to hand to
+// supertest - not a real port bound and left open.
+if (require.main === module) {
+  const PORT = process.env.PORT || 4000;
+  app.listen(PORT, () => {
+    console.log(`TFNN backend listening on port ${PORT}`);
+  });
+}
 
 module.exports = app;
