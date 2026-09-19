@@ -173,6 +173,7 @@ button.primary{
   <div class="content">
     <div class="panel active" id="panel-herd">
       <div class="section-title">Herd <span class="count" id="herd-count"></span></div>
+      <button class="link-btn" id="import-herd-btn" style="border:1px dashed var(--line); border-radius:var(--radius); padding:8px; width:100%; text-align:center; text-decoration:none; margin-bottom:14px; display:block;">📄 Import from spreadsheet</button>
       <div id="herd-list"></div>
       <div class="empty-note" id="herd-empty" style="display:none;">No animals yet. Use Quick Log to add your first one via the API, or ask your developer to add a "new animal" form.</div>
     </div>
@@ -358,8 +359,41 @@ button.primary{
   </div>
 </div>
 
+<div class="sheet" id="import-sheet">
+  <div class="sheet-handle"></div>
+  <div class="ql-step active" id="imp-step-file">
+    <div class="ql-title">Import herd from spreadsheet</div>
+    <p class="meta" style="color:var(--ink-soft); margin-bottom:14px;">Upload a .csv or .xlsx file. You'll match its columns to TFNN fields on the next screen — nothing imports until you confirm.</p>
+    <input type="file" id="imp-file-input" accept=".csv,.xlsx,.xls">
+  </div>
+  <div class="ql-step" id="imp-step-map">
+    <button class="ql-back" id="imp-back-file">&larr; Back</button>
+    <div class="ql-title">Match your columns</div>
+    <div id="imp-map-fields"></div>
+    <button class="primary" id="imp-preview-btn" style="margin-top:6px;">Preview</button>
+  </div>
+  <div class="ql-step" id="imp-step-preview">
+    <button class="ql-back" id="imp-back-map">&larr; Back</button>
+    <div class="ql-title">Preview <span class="meta" id="imp-row-count" style="font-weight:400;"></span></div>
+    <div id="imp-preview-table" style="font-size:0.8rem; margin-bottom:16px; max-height:220px; overflow-y:auto; border:1px solid var(--line); border-radius:var(--radius); padding:10px;"></div>
+    <div class="error-msg" id="imp-preview-warning" style="display:none; color:var(--gold);"></div>
+    <button class="primary" id="imp-import-btn">Import these animals</button>
+  </div>
+  <div class="ql-step" id="imp-step-progress">
+    <div class="ql-title">Importing…</div>
+    <p id="imp-progress-text" class="meta"></p>
+  </div>
+  <div class="ql-step" id="imp-step-summary">
+    <div class="ql-title">Done</div>
+    <p id="imp-summary-text"></p>
+    <div id="imp-summary-errors" style="font-size:0.8rem; color:var(--ink-soft); max-height:160px; overflow-y:auto;"></div>
+    <button class="primary" id="imp-close-btn" style="margin-top:16px;">Close</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 const API_BASE = 'https://tfnn-1.onrender.com/api/v1';
 let token = null;
@@ -1107,6 +1141,154 @@ document.getElementById('ld-mark-sold-btn').addEventListener('click', async () =
     errEl.style.display = 'block';
   }
 });
+
+// ---- SPREADSHEET IMPORT ----
+const TFNN_FIELDS = [
+  { key: 'tag_number', label: 'Tag number', required: true, guesses: ['tag', 'tag number', 'tag_number', 'eartag', 'ear tag', 'tag no'] },
+  { key: 'species', label: 'Species', required: true, guesses: ['species', 'type', 'animal type'] },
+  { key: 'breed', label: 'Breed', required: false, guesses: ['breed'] },
+  { key: 'date_of_birth', label: 'Date of birth', required: false, guesses: ['dob', 'date of birth', 'birth date', 'born'] },
+  { key: 'class', label: 'Class', required: false, guesses: ['class', 'category'] },
+];
+const VALID_SPECIES = ['Cattle', 'Sheep', 'Goat'];
+let importState = { headers: [], rows: [], mapping: {}, mappedRows: [] };
+
+document.getElementById('import-herd-btn').addEventListener('click', () => {
+  importState = { headers: [], rows: [], mapping: {}, mappedRows: [] };
+  document.getElementById('imp-file-input').value = '';
+  showImpStep('file');
+  document.getElementById('import-sheet').classList.add('open');
+  document.getElementById('sheet-overlay').classList.add('open');
+});
+function showImpStep(name){
+  document.querySelectorAll('#import-sheet .ql-step').forEach(s => s.classList.remove('active'));
+  document.getElementById('imp-step-' + name).classList.add('active');
+}
+document.getElementById('imp-back-file').addEventListener('click', () => showImpStep('file'));
+document.getElementById('imp-back-map').addEventListener('click', () => showImpStep('map'));
+
+document.getElementById('imp-file-input').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const wb = XLSX.read(ev.target.result, { type: 'array' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+      if (rows.length < 2) { showToast('That file has no data rows', true); return; }
+      importState.headers = rows[0].map(h => String(h).trim());
+      importState.rows = rows.slice(1).filter(r => r.some(cell => String(cell).trim() !== ''));
+      renderMappingStep();
+      showImpStep('map');
+    } catch (err) {
+      showToast('Could not read that file: ' + err.message, true);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+function guessColumn(fieldGuesses){
+  for (let i = 0; i < importState.headers.length; i++) {
+    const h = importState.headers[i].toLowerCase();
+    if (fieldGuesses.some(g => h === g || h.includes(g))) return i;
+  }
+  return -1;
+}
+
+function renderMappingStep(){
+  document.getElementById('imp-map-fields').innerHTML = TFNN_FIELDS.map(f => {
+    const guessIdx = guessColumn(f.guesses);
+    const options = ['<option value="-1">— Not in file —</option>']
+      .concat(importState.headers.map((h, i) => `<option value="${i}" ${i === guessIdx ? 'selected' : ''}>${h}</option>`));
+    return `<label>${f.label}${f.required ? ' (required)' : ''}</label><select data-field="${f.key}">${options.join('')}</select>`;
+  }).join('');
+}
+
+document.getElementById('imp-preview-btn').addEventListener('click', () => {
+  const mapping = {};
+  document.querySelectorAll('#imp-map-fields select').forEach(sel => { mapping[sel.dataset.field] = Number(sel.value); });
+  if (mapping.tag_number === -1 || mapping.species === -1) {
+    showToast('Tag number and species must both be mapped', true);
+    return;
+  }
+  importState.mapping = mapping;
+
+  const warnings = [];
+  importState.mappedRows = importState.rows.map((row, i) => {
+    const tag_number = mapping.tag_number >= 0 ? String(row[mapping.tag_number] || '').trim() : '';
+    const speciesRaw = mapping.species >= 0 ? String(row[mapping.species] || '').trim() : '';
+    const breed = mapping.breed >= 0 ? String(row[mapping.breed] || '').trim() : '';
+    const dobRaw = mapping.date_of_birth >= 0 ? row[mapping.date_of_birth] : '';
+    const cls = mapping.class >= 0 ? String(row[mapping.class] || '').trim() : '';
+
+    const speciesMatch = VALID_SPECIES.find(s => s.toLowerCase() === speciesRaw.toLowerCase());
+    if (!speciesMatch) warnings.push(`Row ${i + 2}: species "${speciesRaw}" doesn't match Cattle/Sheep/Goat — will be skipped`);
+    if (!tag_number) warnings.push(`Row ${i + 2}: missing tag number — will be skipped`);
+
+    let date_of_birth;
+    if (dobRaw) {
+      const d = new Date(dobRaw);
+      if (!isNaN(d)) date_of_birth = d.toISOString().slice(0, 10);
+    }
+
+    return { tag_number, species: speciesMatch, breed: breed || undefined, date_of_birth, class: cls || undefined, valid: !!(tag_number && speciesMatch) };
+  });
+
+  const validCount = importState.mappedRows.filter(r => r.valid).length;
+  document.getElementById('imp-row-count').textContent = `(${validCount} of ${importState.mappedRows.length} rows ready)`;
+  document.getElementById('imp-preview-table').innerHTML = `
+    <table style="width:100%; border-collapse:collapse;">
+      <tr style="font-weight:600; border-bottom:1px solid var(--line);"><td>Tag</td><td>Species</td><td>Breed</td></tr>
+      ${importState.mappedRows.slice(0, 8).map(r => `<tr style="opacity:${r.valid ? 1 : 0.4};"><td>${r.tag_number || '—'}</td><td>${r.species || '—'}</td><td>${r.breed || ''}</td></tr>`).join('')}
+    </table>
+    ${importState.mappedRows.length > 8 ? `<p class="meta" style="margin-top:8px;">…and ${importState.mappedRows.length - 8} more</p>` : ''}
+  `;
+  const warnEl = document.getElementById('imp-preview-warning');
+  if (warnings.length) {
+    warnEl.style.display = 'block';
+    warnEl.textContent = warnings.length + ' row(s) will be skipped — see the summary after import for details.';
+  } else {
+    warnEl.style.display = 'none';
+  }
+  showImpStep('preview');
+});
+
+document.getElementById('imp-import-btn').addEventListener('click', async () => {
+  const toImport = importState.mappedRows.filter(r => r.valid);
+  showImpStep('progress');
+  let success = 0;
+  const errors = [];
+
+  for (let i = 0; i < toImport.length; i++) {
+    document.getElementById('imp-progress-text').textContent = `Importing ${i + 1} of ${toImport.length}…`;
+    const row = toImport[i];
+    try {
+      const res = await api('/animals', {
+        method: 'POST',
+        body: {
+          tag_number: row.tag_number,
+          species: row.species,
+          breed: row.breed,
+          date_of_birth: row.date_of_birth,
+          class: row.class,
+          client_id: crypto.randomUUID(),
+        },
+      });
+      if (res.__queued) errors.push(`${row.tag_number}: saved offline — will sync later, not counted yet`);
+      else success++;
+    } catch (err) {
+      errors.push(`${row.tag_number}: ${err.message}`);
+    }
+  }
+
+  document.getElementById('imp-summary-text').textContent = `${success} of ${toImport.length} animals imported.`;
+  document.getElementById('imp-summary-errors').innerHTML = errors.map(e => `<div>${e}</div>`).join('');
+  showImpStep('summary');
+  await loadHerd();
+});
+
+document.getElementById('imp-close-btn').addEventListener('click', closeAllSheets);
 </script>
 </body>
 </html>
