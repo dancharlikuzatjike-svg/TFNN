@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#262019">
+<link rel="icon" href="icon-192.png">
+<title>TFNN — Farmers Network Namibia</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700&family=Work+Sans:wght@400;500;600;700&display=swap');
+
+:root{
+  --paper: #EFEAD9;
+  --paper-raised: #F8F5EA;
+  --ink: #262019;
+  --ink-soft: #6B6152;
+  --line: #CBC3AA;
+  --cattle: #8C4A2F;
+  --sheep: #3F6B4F;
+  --goat: #2E5C6E;
+  --gold: #B8892B;
+  --radius: 8px;
+  --danger: #A13B2E;
+}
+*{ box-sizing: border-box; }
+html,body{ margin:0; padding:0; background:var(--paper); color:var(--ink); font-family:'Work Sans',sans-serif; -webkit-tap-highlight-color:transparent; }
+body{ max-width:430px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; position:relative; }
+h1,h2,h3{ font-family:'Roboto Slab',serif; }
+input, select{
+  width:100%; border:1px solid var(--line); background:#fff; border-radius:6px;
+  padding:10px 12px; font-family:'Work Sans'; font-size:0.9rem; color:var(--ink); margin-bottom:12px;
+}
+label{ font-size:0.78rem; color:var(--ink-soft); display:block; margin-bottom:4px; }
+button.primary{
+  width:100%; background:var(--ink); color:var(--paper); border:none; border-radius:var(--radius);
+  padding:13px; font-family:'Work Sans'; font-weight:600; font-size:0.95rem; cursor:pointer;
+}
+.error-msg{ color:var(--danger); font-size:0.82rem; margin:-4px 0 12px; }
+.link-btn{ background:none; border:none; color:var(--ink-soft); font-size:0.82rem; text-decoration:underline; cursor:pointer; padding:0; }
+
+/* auth screen */
+#screen-auth{ flex:1; display:flex; flex-direction:column; justify-content:center; padding:30px 26px; }
+#screen-auth h1{ font-size:1.5rem; margin:0 0 4px; }
+#screen-auth p.tag{ color:var(--ink-soft); font-size:0.85rem; margin:0 0 26px; }
+
+/* topbar */
+.topbar{ padding:16px 20px 12px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; background:var(--paper); z-index:5; }
+.topbar .farm{ font-size:1.2rem; font-weight:700; margin:0; }
+.topbar .sub{ color:var(--ink-soft); font-size:0.78rem; }
+.topbar button{ background:none; border:none; color:var(--ink-soft); font-size:0.78rem; cursor:pointer; }
+
+.content{ flex:1; padding:16px 20px 90px; }
+.panel{ display:none; }
+.panel.active{ display:block; }
+.section-title{ font-size:0.95rem; font-weight:700; margin:4px 0 12px; display:flex; justify-content:space-between; align-items:baseline; }
+.section-title .count{ font-weight:400; color:var(--ink-soft); font-size:0.82rem; }
+.empty-note{ color:var(--ink-soft); font-size:0.85rem; padding:20px 0; text-align:center; }
+
+.tag-badge{ position:relative; display:inline-flex; align-items:center; justify-content:center; min-width:62px; height:32px; padding:0 12px 0 18px; border-radius:6px; font-weight:700; font-size:0.78rem; color:#fff; flex-shrink:0; }
+.tag-badge::before{ content:''; position:absolute; left:6px; top:50%; transform:translateY(-50%); width:7px; height:7px; border-radius:50%; background:var(--paper-raised); }
+.tag-badge.cattle{ background:var(--cattle); }
+.tag-badge.sheep{ background:var(--sheep); }
+.tag-badge.goat{ background:var(--goat); }
+
+.row{ display:flex; align-items:center; gap:12px; padding:13px 0; border-bottom:1px solid var(--line); cursor:pointer; }
+.row:last-child{ border-bottom:none; }
+.row .info{ flex:1; min-width:0; }
+.row .name{ font-weight:600; font-size:0.95rem; }
+.row .meta{ color:var(--ink-soft); font-size:0.8rem; margin-top:2px; }
+.row .right{ text-align:right; flex-shrink:0; }
+.row .value{ font-weight:600; font-size:0.9rem; }
+.pill{ display:inline-block; padding:3px 10px; border-radius:20px; font-size:0.72rem; font-weight:600; margin-top:3px; }
+.pill.active, .pill.paid{ background:#DCE7DD; color:var(--sheep); }
+.pill.sold{ background:#EBD9CE; color:var(--cattle); }
+.pill.pending{ background:#F2E4C4; color:var(--gold); }
+.pill.done{ background:#DCE7DD; color:var(--sheep); text-decoration:line-through; }
+
+.ledger{ background:var(--paper-raised); border:1px solid var(--line); border-radius:var(--radius); padding:4px 18px; margin-bottom:18px; }
+.ledger-row{ display:flex; justify-content:space-between; align-items:center; padding:13px 0; border-bottom:1px solid var(--line); }
+.ledger-row:last-child{ border-bottom:none; }
+.ledger-row .num{ font-family:'Roboto Slab'; font-weight:700; font-size:1.05rem; }
+.ledger-row.total .num{ font-size:1.25rem; }
+.num.positive{ color:var(--sheep); }
+.num.negative{ color:var(--cattle); }
+
+.fab{ position:fixed; left:50%; bottom:78px; transform:translateX(88px); width:56px; height:56px; border-radius:50%; background:var(--ink); border:none; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(38,32,25,0.25); z-index:9; cursor:pointer; }
+.fab svg{ width:26px; height:26px; stroke:var(--paper); }
+
+.tabbar{ position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:430px; display:flex; background:var(--paper-raised); border-top:1px solid var(--line); z-index:10; }
+.tabbar button{ flex:1; background:none; border:none; padding:9px 0 7px; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:0.66rem; color:var(--ink-soft); cursor:pointer; }
+.tabbar button svg{ width:18px; height:18px; stroke:var(--ink-soft); }
+.tabbar button.active{ color:var(--ink); }
+.tabbar button.active svg{ stroke:var(--ink); }
+
+.sheet-overlay{ position:fixed; inset:0; background:rgba(38,32,25,0.4); z-index:20; display:none; }
+.sheet-overlay.open{ display:block; }
+.sheet{ position:fixed; left:50%; bottom:0; transform:translate(-50%,100%); width:100%; max-width:430px; max-height:82vh; overflow-y:auto; background:var(--paper); border-radius:18px 18px 0 0; z-index:21; transition:transform 0.28s ease; padding:10px 22px 28px; }
+.sheet.open{ transform:translate(-50%,0); }
+.sheet-handle{ width:36px; height:4px; background:var(--line); border-radius:2px; margin:6px auto 14px; }
+.ql-step{ display:none; }
+.ql-step.active{ display:block; }
+.ql-title{ font-family:'Roboto Slab'; font-weight:700; font-size:1.1rem; margin:4px 0 16px; }
+.ql-back{ background:none; border:none; color:var(--ink-soft); font-size:0.82rem; padding:0; margin-bottom:10px; cursor:pointer; }
+.grid3{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.tile{ border:1px solid var(--line); background:var(--paper-raised); border-radius:var(--radius); padding:14px 4px; display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; }
+.tile span{ font-size:0.72rem; font-weight:600; text-align:center; }
+.tile:active{ background:var(--line); }
+.timeline .event{ position:relative; padding-left:20px; padding-bottom:16px; border-left:2px solid var(--line); margin-left:4px; }
+.timeline .event:last-child{ border-left-color:transparent; padding-bottom:0; }
+.timeline .event::before{ content:''; position:absolute; left:-6px; top:2px; width:10px; height:10px; border-radius:50%; background:var(--ink); }
+.timeline .event .etype{ font-weight:600; font-size:0.9rem; }
+.timeline .event .edate{ color:var(--ink-soft); font-size:0.78rem; }
+
+.toast{ position:fixed; left:50%; bottom:78px; transform:translate(-50%,20px); background:var(--ink); color:var(--paper); padding:12px 20px; border-radius:30px; font-size:0.85rem; opacity:0; pointer-events:none; transition:all 0.25s ease; z-index:30; white-space:nowrap; }
+.toast.show{ opacity:1; transform:translate(-50%,0); }
+.toast.error{ background:var(--danger); }
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="screen-auth">
+  <h1>TFNN</h1>
+  <p class="tag">The Farmers Network Namibia</p>
+
+  <div id="login-form">
+    <label>Phone</label>
+    <input type="tel" id="login-phone" placeholder="0811234567">
+    <label>Password</label>
+    <input type="password" id="login-password">
+    <div class="error-msg" id="login-error" style="display:none;"></div>
+    <button class="primary" id="login-submit">Log in</button>
+    <p style="text-align:center; margin-top:14px;">
+      <button class="link-btn" id="show-register">New here? Create an account</button>
+    </p>
+  </div>
+
+  <div id="register-form" style="display:none;">
+    <label>Full name</label>
+    <input type="text" id="reg-name">
+    <label>Phone</label>
+    <input type="tel" id="reg-phone">
+    <label>Password (min. 8 characters)</label>
+    <input type="password" id="reg-password">
+    <label>I am a</label>
+    <select id="reg-role">
+      <option value="farmer">Farmer</option>
+      <option value="supplier">Feed supplier</option>
+      <option value="vet">Vet</option>
+    </select>
+    <label>Farm location (optional)</label>
+    <input type="text" id="reg-farm-location">
+    <div class="error-msg" id="register-error" style="display:none;"></div>
+    <button class="primary" id="register-submit">Create account</button>
+    <p style="text-align:center; margin-top:14px;">
+      <button class="link-btn" id="show-login">Already have an account? Log in</button>
+    </p>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="screen-app" style="display:none;">
+  <div class="topbar">
+    <div>
+      <p class="farm" id="app-farmer-name"></p>
+      <p class="sub" id="app-farm-location"></p>
+      <p class="sub" id="sync-badge" style="display:none; color:var(--gold); font-weight:600;"></p>
+    </div>
+    <button id="logout-btn">Log out</button>
+  </div>
+
+  <div class="content">
+    <div class="panel active" id="panel-herd">
+      <div class="section-title">Herd <span class="count" id="herd-count"></span></div>
+      <div id="herd-list"></div>
+      <div class="empty-note" id="herd-empty" style="display:none;">No animals yet. Use Quick Log to add your first one via the API, or ask your developer to add a "new animal" form.</div>
+    </div>
+
+    <div class="panel" id="panel-tasks">
+      <div class="section-title">Tasks <span class="count" id="tasks-count"></span></div>
+      <div id="tasks-list"></div>
+      <div class="empty-note" id="tasks-empty" style="display:none;">Nothing due right now.</div>
+    </div>
+
+    <div class="panel" id="panel-sales">
+      <div class="section-title">Sales <span class="count" id="sales-count"></span></div>
+      <button class="primary" id="add-sale-btn" style="margin-bottom:14px;">+ Record a sale</button>
+      <div id="sales-list"></div>
+      <div class="empty-note" id="sales-empty" style="display:none;">No sales recorded yet.</div>
+    </div>
+
+    <div class="panel" id="panel-expenses">
+      <div class="section-title">Expenses <span class="count" id="expenses-count"></span></div>
+      <button class="primary" id="add-expense-btn" style="margin-bottom:14px;">+ Add expense</button>
+      <div id="expenses-list"></div>
+      <div class="empty-note" id="expenses-empty" style="display:none;">No expenses recorded yet.</div>
+    </div>
+
+    <div class="panel" id="panel-valuation">
+      <div class="section-title">Valuation</div>
+      <div class="ledger" id="valuation-ledger"></div>
+    </div>
+
+    <div class="panel" id="panel-marketplace">
+      <div style="display:flex; gap:8px; margin-bottom:14px;">
+        <button class="link-btn" id="mkt-tab-browse" style="flex:1; border:1px solid var(--line); border-radius:20px; padding:6px; text-decoration:none; background:var(--ink); color:var(--paper);">Browse</button>
+        <button class="link-btn" id="mkt-tab-mine" style="flex:1; border:1px solid var(--line); border-radius:20px; padding:6px; text-decoration:none;">My listings</button>
+      </div>
+      <button class="primary" id="mkt-list-btn" style="margin-bottom:14px;">+ List an animal</button>
+      <div id="mkt-browse-view">
+        <div class="section-title">For sale nearby <span class="count" id="mkt-browse-count"></span></div>
+        <div id="mkt-browse-list"></div>
+        <div class="empty-note" id="mkt-browse-empty" style="display:none;">No open listings right now.</div>
+      </div>
+      <div id="mkt-mine-view" style="display:none;">
+        <div class="section-title">Your listings <span class="count" id="mkt-mine-count"></span></div>
+        <div id="mkt-mine-list"></div>
+        <div class="empty-note" id="mkt-mine-empty" style="display:none;">You haven't listed anything yet.</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="fab" id="fab-quicklog" aria-label="Quick log">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+
+  <div class="tabbar" id="tabbar">
+    <button class="active" data-panel="herd">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10c0-3 2-6 8-6s8 3 8 6-3 9-8 9-8-6-8-9z"/></svg>
+      Herd
+    </button>
+    <button data-panel="tasks">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5"/></svg>
+      Tasks
+    </button>
+    <button data-panel="sales">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M6 7v13h12V7"/></svg>
+      Sales
+    </button>
+    <button data-panel="expenses">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/></svg>
+      Expenses
+    </button>
+    <button data-panel="valuation">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+      Value
+    </button>
+    <button data-panel="marketplace">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1-5h16l1 5M4 9h16v11H4zM9 9v3a3 3 0 006 0V9"/></svg>
+      Market
+    </button>
+  </div>
+</div>
+
+<div class="sheet-overlay" id="sheet-overlay"></div>
+
+<div class="sheet" id="animal-sheet">
+  <div class="sheet-handle"></div>
+  <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+    <div class="tag-badge" id="sheet-tag"></div>
+    <div>
+      <h2 id="sheet-name" style="margin:0; font-size:1.2rem;"></h2>
+      <div class="meta" id="sheet-meta" style="color:var(--ink-soft); font-size:0.82rem;"></div>
+    </div>
+  </div>
+  <div class="timeline" id="sheet-timeline"></div>
+  <div id="sheet-photo-wrap" style="margin-top:16px;"></div>
+  <button class="link-btn" id="sheet-add-photo-btn" style="margin-top:10px; border:1px dashed var(--line); border-radius:var(--radius); padding:10px; width:100%; text-decoration:none;">📷 Add / update photo</button>
+  <input type="file" id="sheet-photo-input" accept="image/*" capture="environment" style="display:none;">
+</div>
+
+<div class="sheet" id="quicklog-sheet">
+  <div class="sheet-handle"></div>
+  <div class="ql-step active" id="ql-step-1">
+    <div class="ql-title">Which animal?</div>
+    <div class="grid3" id="ql-animal-grid"></div>
+  </div>
+  <div class="ql-step" id="ql-step-2">
+    <button class="ql-back" id="ql-back-1">&larr; Back</button>
+    <div class="ql-title">What happened?</div>
+    <div class="grid3" id="ql-type-grid"></div>
+  </div>
+  <div class="ql-step" id="ql-step-3">
+    <button class="ql-back" id="ql-back-2">&larr; Back</button>
+    <div class="ql-title">Confirm</div>
+    <p id="ql-confirm-summary" style="margin-bottom:10px;"></p>
+    <label>Date</label>
+    <input type="date" id="ql-date-input">
+    <label>Notes (optional)</label>
+    <input type="text" id="ql-notes-input" placeholder="e.g. anthrax booster">
+    <div style="display:flex; gap:10px; margin-bottom:14px;">
+      <button class="link-btn" id="ql-attach-photo-btn" style="flex:1; border:1px dashed var(--line); border-radius:var(--radius); padding:10px; text-decoration:none;">📷 Add photo</button>
+      <button class="link-btn" id="ql-attach-voice-btn" style="flex:1; border:1px dashed var(--line); border-radius:var(--radius); padding:10px; text-decoration:none;">🎙️ Voice note</button>
+    </div>
+    <input type="file" id="ql-photo-input" accept="image/*" capture="environment" style="display:none;">
+    <input type="file" id="ql-voice-input" accept="audio/*" capture style="display:none;">
+    <div class="error-msg" id="ql-error" style="display:none;"></div>
+    <button class="primary" id="ql-submit">Log it</button>
+  </div>
+</div>
+
+<div class="sheet" id="sale-sheet">
+  <div class="sheet-handle"></div>
+  <div class="ql-title">Record a sale</div>
+  <label>Animal</label>
+  <select id="sale-animal"></select>
+  <label>Buyer name</label>
+  <input type="text" id="sale-buyer">
+  <label>Price (N$)</label>
+  <input type="number" id="sale-price">
+  <div class="error-msg" id="sale-error" style="display:none;"></div>
+  <button class="primary" id="sale-submit">Save sale</button>
+</div>
+
+<div class="sheet" id="expense-sheet">
+  <div class="sheet-handle"></div>
+  <div class="ql-title">Add expense</div>
+  <label>Amount (N$)</label>
+  <input type="number" id="expense-amount">
+  <label>Category</label>
+  <select id="expense-category">
+    <option>Feed</option><option>Vet</option><option>Equipment</option><option>Other</option>
+  </select>
+  <label>Description (optional)</label>
+  <input type="text" id="expense-description">
+  <div class="error-msg" id="expense-error" style="display:none;"></div>
+  <button class="primary" id="expense-submit">Save expense</button>
+</div>
+
+<div class="sheet" id="listing-sheet">
+  <div class="sheet-handle"></div>
+  <div class="ql-title">List an animal</div>
+  <label>Animal</label>
+  <select id="listing-animal"></select>
+  <label>Asking price (N$, optional)</label>
+  <input type="number" id="listing-price">
+  <label>Description (optional)</label>
+  <input type="text" id="listing-description" placeholder="e.g. good condition, dewormed last month">
+  <div class="error-msg" id="listing-error" style="display:none;"></div>
+  <button class="primary" id="listing-submit">Publish listing</button>
+</div>
+
+<div class="sheet" id="listing-detail-sheet">
+  <div class="sheet-handle"></div>
+  <div class="ql-title" id="ld-title"></div>
+  <p class="meta" style="color:var(--ink-soft);" id="ld-meta"></p>
+  <p id="ld-description" style="margin:10px 0;"></p>
+  <div id="ld-contact-block" style="background:var(--paper-raised); border:1px solid var(--line); border-radius:var(--radius); padding:14px; margin-bottom:16px;"></div>
+  <div id="ld-owner-actions" style="display:none;">
+    <label>Buyer's phone (look them up to record the sale)</label>
+    <input type="tel" id="ld-buyer-phone">
+    <label>Final price (N$)</label>
+    <input type="number" id="ld-final-price">
+    <div class="error-msg" id="ld-error" style="display:none;"></div>
+    <button class="primary" id="ld-mark-sold-btn">Mark as sold</button>
+    <button class="link-btn" id="ld-cancel-btn" style="margin-top:12px; width:100%; text-align:center;">Cancel this listing</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_BASE = 'https://tfnn-1.onrender.com/api/v1';
+let token = null;
+let currentUser = null;
+let animals = [];
+
+// ---- Offline outbox (IndexedDB) ----
+// Only writes (POST/PATCH/DELETE) that fail with a genuine network error (no
+// response at all - offline, DNS, timeout) get queued here. A real error
+// response from the server (validation failure, 4xx/5xx) is NEVER queued -
+// that's a real problem the person needs to see and fix, not silently retry.
+const OUTBOX_DB = 'tfnn-outbox';
+const OUTBOX_STORE = 'queue';
+
+function openOutboxDB(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(OUTBOX_DB, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(OUTBOX_STORE, { keyPath: 'id', autoIncrement: true });
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function queueWrite(path, method, body){
+  const db = await openOutboxDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(OUTBOX_STORE, 'readwrite');
+    tx.objectStore(OUTBOX_STORE).add({ path, method, body, queued_at: Date.now() });
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function getQueuedWrites(){
+  const db = await openOutboxDB();
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(OUTBOX_STORE, 'readonly').objectStore(OUTBOX_STORE).getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function removeQueuedWrite(id){
+  const db = await openOutboxDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(OUTBOX_STORE, 'readwrite');
+    tx.objectStore(OUTBOX_STORE).delete(id);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function updateSyncBadge(){
+  const items = await getQueuedWrites().catch(() => []);
+  const badge = document.getElementById('sync-badge');
+  if (items.length > 0) {
+    badge.textContent = items.length + ' change' + (items.length > 1 ? 's' : '') + ' waiting to sync';
+    badge.style.display = 'block';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+async function syncOutbox(){
+  if (!navigator.onLine || !token) return;
+  const items = await getQueuedWrites().catch(() => []);
+  for (const item of items) {
+    try {
+      await api(item.path, { method: item.method, body: item.body });
+      await removeQueuedWrite(item.id);
+    } catch (err) {
+      break; // still offline, or a transient error - stop and retry the whole queue next pass
+    }
+  }
+  await updateSyncBadge();
+  if (token) await Promise.all([loadHerd(), loadTasks(), loadSales(), loadExpenses(), loadValuation()]);
+}
+window.addEventListener('online', () => { showToast('Back online — syncing…'); syncOutbox(); });
+setInterval(syncOutbox, 30000);
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// ---- API helper ----
+async function api(path, options = {}) {
+  const method = options.method || 'GET';
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers.Authorization = 'Bearer ' + token;
+
+  let res;
+  try {
+    res = await fetch(API_BASE + path, {
+      method,
+      headers,
+      body: options.body ? JSON.stringify(options.body) : undefined,
+    });
+  } catch (networkErr) {
+    if (method !== 'GET') {
+      await queueWrite(path, method, options.body || {});
+      await updateSyncBadge();
+      return { __queued: true };
+    }
+    return { __offline: true }; // GET failure while offline - caller keeps showing existing data
+  }
+
+  let data = {};
+  try { data = await res.json(); } catch (e) {}
+  if (!res.ok) throw new Error(data.error || ('Request failed (' + res.status + ')'));
+  return data;
+}
+
+function money(n){ return 'N$' + Number(n || 0).toLocaleString(); }
+function speciesClass(s){ return (s || '').toLowerCase(); }
+function showToast(msg, isError){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => { t.className = 'toast'; }, 2600);
+}
+
+// ---- Media helpers (photo resize + base64, voice base64, authenticated fetch-as-blob) ----
+function resizeImageToBase64(file, maxWidth){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const scale = Math.min(1, maxWidth / img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.75).split(',')[1]);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function fileToBase64(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+async function uploadMedia(refType, refId, kind, mimeType, base64Data){
+  return api('/media', {
+    method: 'POST',
+    body: { ref_type: refType, ref_id: refId, kind, mime_type: mimeType, data: base64Data, client_id: crypto.randomUUID() },
+  });
+}
+async function fetchMediaBlobUrl(mediaId){
+  const res = await fetch(API_BASE + '/media/' + mediaId, { headers: { Authorization: 'Bearer ' + token } });
+  if (!res.ok) throw new Error('Could not load media');
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);
+}
+
+// ---- Auth screens ----
+document.getElementById('show-register').addEventListener('click', () => {
+  document.getElementById('login-form').style.display = 'none';
+  document.getElementById('register-form').style.display = 'block';
+});
+document.getElementById('show-login').addEventListener('click', () => {
+  document.getElementById('register-form').style.display = 'none';
+  document.getElementById('login-form').style.display = 'block';
+});
+
+document.getElementById('login-submit').addEventListener('click', async () => {
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  try {
+    const phone = document.getElementById('login-phone').value.trim();
+    const password = document.getElementById('login-password').value;
+    const data = await api('/auth/login', { method: 'POST', body: { phone, password } });
+    token = data.token;
+    currentUser = data.user;
+    enterApp();
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  }
+});
+
+document.getElementById('register-submit').addEventListener('click', async () => {
+  const errEl = document.getElementById('register-error');
+  errEl.style.display = 'none';
+  try {
+    const body = {
+      name: document.getElementById('reg-name').value.trim(),
+      phone: document.getElementById('reg-phone').value.trim(),
+      password: document.getElementById('reg-password').value,
+      role: document.getElementById('reg-role').value,
+      farm_location: document.getElementById('reg-farm-location').value.trim() || undefined,
+    };
+    const data = await api('/auth/register', { method: 'POST', body });
+    if (data.token) {
+      token = data.token;
+      currentUser = data.user;
+      enterApp();
+    } else {
+      showToast(data.message || 'Account created — pending approval.');
+      document.getElementById('show-login').click();
+    }
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  }
+});
+
+document.getElementById('logout-btn').addEventListener('click', () => {
+  token = null; currentUser = null; animals = [];
+  document.getElementById('screen-app').style.display = 'none';
+  document.getElementById('screen-auth').style.display = 'flex';
+});
+
+async function enterApp(){
+  document.getElementById('screen-auth').style.display = 'none';
+  document.getElementById('screen-app').style.display = 'block';
+  document.getElementById('app-farmer-name').textContent = currentUser.name;
+  document.getElementById('app-farm-location').textContent = currentUser.farm_location || '';
+  await updateSyncBadge();
+  await syncOutbox();
+  await Promise.all([loadHerd(), loadTasks(), loadSales(), loadExpenses(), loadValuation(), loadMarketBrowse()]);
+}
+
+// ---- Tab switching ----
+document.getElementById('tabbar').addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  document.querySelectorAll('.tabbar button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + btn.dataset.panel).classList.add('active');
+});
+
+// ---- HERD ----
+async function loadHerd(){
+  try {
+    const data = await api('/animals');
+    if (data.__offline) return;
+    animals = data.animals || [];
+    document.getElementById('herd-count').textContent = animals.length + ' animals';
+    document.getElementById('herd-empty').style.display = animals.length ? 'none' : 'block';
+    document.getElementById('herd-list').innerHTML = animals.map(a => `
+      <div class="row" data-id="${a.animal_id}">
+        <div class="tag-badge ${speciesClass(a.species)}">${a.tag_number}</div>
+        <div class="info">
+          <div class="name">${a.breed || ''} ${a.species}</div>
+          <div class="meta">${a.status}</div>
+        </div>
+        <div class="right">
+          ${a.status === 'Active'
+            ? `<div class="value">${a.estimated_value ? money(a.estimated_value) : '—'}</div><div class="pill active">Active</div>`
+            : `<div class="pill sold">${a.status}</div>`}
+        </div>
+      </div>
+    `).join('');
+    document.querySelectorAll('#herd-list .row').forEach(row => {
+      row.addEventListener('click', () => openAnimalSheet(row.dataset.id));
+    });
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+async function openAnimalSheet(animalId){
+  const animal = animals.find(a => String(a.animal_id) === String(animalId));
+  if (!animal) return;
+  document.getElementById('sheet-tag').textContent = animal.tag_number;
+  document.getElementById('sheet-tag').className = 'tag-badge ' + speciesClass(animal.species);
+  document.getElementById('sheet-name').textContent = (animal.breed || '') + ' ' + animal.species;
+  document.getElementById('sheet-meta').textContent = animal.status;
+
+  const timelineEl = document.getElementById('sheet-timeline');
+  timelineEl.innerHTML = '<p class="meta">Loading history…</p>';
+  document.getElementById('animal-sheet').classList.add('open');
+  document.getElementById('sheet-overlay').classList.add('open');
+
+  try {
+    const data = await api('/animals/' + animalId + '/events');
+    const events = data.events || [];
+    timelineEl.innerHTML = events.length ? events.map(ev => `
+      <div class="event">
+        <div class="etype">${ev.event_type}</div>
+        <div class="edate">${ev.event_date}</div>
+        ${ev.notes ? `<div style="font-size:0.85rem; margin-top:4px;">${ev.notes}</div>` : ''}
+      </div>
+    `).join('') : '<p class="meta">No events logged yet.</p>';
+  } catch (err) {
+    timelineEl.innerHTML = '<p class="meta">Could not load history.</p>';
+  }
+
+  const photoWrap = document.getElementById('sheet-photo-wrap');
+  photoWrap.innerHTML = '';
+  try {
+    const mediaData = await api('/media?ref_type=animal&ref_id=' + animalId);
+    const photo = (mediaData.media || []).find(m => m.kind === 'photo');
+    if (photo) {
+      const url = await fetchMediaBlobUrl(photo.media_id);
+      photoWrap.innerHTML = `<img src="${url}" style="width:100%; border-radius:var(--radius); border:1px solid var(--line);">`;
+    }
+  } catch (err) { /* no photo yet - fine */ }
+
+  document.getElementById('sheet-add-photo-btn').onclick = () => {
+    document.getElementById('sheet-photo-input').onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const base64 = await resizeImageToBase64(file, 800);
+        await uploadMedia('animal', animalId, 'photo', 'image/jpeg', base64);
+        showToast('Photo saved');
+        openAnimalSheet(animalId);
+      } catch (err) { showToast(err.message, true); }
+    };
+    document.getElementById('sheet-photo-input').click();
+  };
+}
+
+function closeAllSheets(){
+  document.querySelectorAll('.sheet').forEach(s => s.classList.remove('open'));
+  document.getElementById('sheet-overlay').classList.remove('open');
+}
+document.getElementById('sheet-overlay').addEventListener('click', closeAllSheets);
+
+// ---- QUICK LOG ----
+const EVENT_TYPES = ['Vaccinated', 'Fed', 'Sick / Treated', 'Sold', 'Moved Farm', 'Other'];
+let ql = { animal: null, type: null, photoFile: null, voiceFile: null };
+
+document.getElementById('ql-attach-photo-btn').addEventListener('click', () => document.getElementById('ql-photo-input').click());
+document.getElementById('ql-attach-voice-btn').addEventListener('click', () => document.getElementById('ql-voice-input').click());
+document.getElementById('ql-photo-input').addEventListener('change', (e) => {
+  ql.photoFile = e.target.files[0] || null;
+  document.getElementById('ql-attach-photo-btn').textContent = ql.photoFile ? '📷 Photo attached' : '📷 Add photo';
+});
+document.getElementById('ql-voice-input').addEventListener('change', (e) => {
+  ql.voiceFile = e.target.files[0] || null;
+  document.getElementById('ql-attach-voice-btn').textContent = ql.voiceFile ? '🎙️ Voice attached' : '🎙️ Voice note';
+});
+
+document.getElementById('fab-quicklog').addEventListener('click', () => {
+  ql = { animal: null, type: null, photoFile: null, voiceFile: null };
+  document.getElementById('ql-attach-photo-btn').textContent = '📷 Add photo';
+  document.getElementById('ql-attach-voice-btn').textContent = '🎙️ Voice note';
+  document.getElementById('ql-photo-input').value = '';
+  document.getElementById('ql-voice-input').value = '';
+  const active = animals.filter(a => a.status === 'Active');
+  document.getElementById('ql-animal-grid').innerHTML = active.map(a => `
+    <div class="tile" data-id="${a.animal_id}">
+      <div class="tag-badge ${speciesClass(a.species)}">${a.tag_number}</div>
+      <span>${a.breed || ''}</span>
+    </div>
+  `).join('');
+  document.querySelectorAll('#ql-animal-grid .tile').forEach(tile => {
+    tile.addEventListener('click', () => {
+      ql.animal = animals.find(a => String(a.animal_id) === tile.dataset.id);
+      document.getElementById('ql-type-grid').innerHTML = EVENT_TYPES.map(t => `<div class="tile" data-type="${t}"><span>${t}</span></div>`).join('');
+      document.querySelectorAll('#ql-type-grid .tile').forEach(t => {
+        t.addEventListener('click', () => {
+          ql.type = t.dataset.type;
+          document.getElementById('ql-confirm-summary').textContent = ql.type + ' — ' + ql.animal.tag_number;
+          document.getElementById('ql-date-input').valueAsDate = new Date();
+          document.getElementById('ql-notes-input').value = '';
+          showQlStep(3);
+        });
+      });
+      showQlStep(2);
+    });
+  });
+  showQlStep(1);
+  document.getElementById('quicklog-sheet').classList.add('open');
+  document.getElementById('sheet-overlay').classList.add('open');
+});
+function showQlStep(n){
+  document.querySelectorAll('.ql-step').forEach(s => s.classList.remove('active'));
+  document.getElementById('ql-step-' + n).classList.add('active');
+}
+document.getElementById('ql-back-1').addEventListener('click', () => showQlStep(1));
+document.getElementById('ql-back-2').addEventListener('click', () => showQlStep(2));
+
+document.getElementById('ql-submit').addEventListener('click', async () => {
+  const errEl = document.getElementById('ql-error');
+  errEl.style.display = 'none';
+  try {
+    const eventData = await api('/events', {
+      method: 'POST',
+      body: {
+        animal_id: ql.animal.animal_id,
+        event_date: document.getElementById('ql-date-input').value,
+        event_type: ql.type,
+        notes: document.getElementById('ql-notes-input').value || undefined,
+        client_id: crypto.randomUUID(),
+      },
+    });
+
+    if (eventData.__queued) {
+      // Offline - queued for later. Photos/voice notes need a live connection
+      // at logging time for now, so skip those if this was queued.
+      closeAllSheets();
+      showToast('Saved offline — will sync when back online');
+      return;
+    }
+
+    const newEventId = eventData.event.event_id;
+
+    if (ql.photoFile) {
+      try {
+        const base64 = await resizeImageToBase64(ql.photoFile, 800);
+        await uploadMedia('animal_event', newEventId, 'photo', 'image/jpeg', base64);
+      } catch (err) { showToast('Event saved, but photo upload failed: ' + err.message, true); }
+    }
+    if (ql.voiceFile) {
+      try {
+        const base64 = await fileToBase64(ql.voiceFile);
+        await uploadMedia('animal_event', newEventId, 'voice', ql.voiceFile.type || 'audio/mpeg', base64);
+      } catch (err) { showToast('Event saved, but voice note upload failed: ' + err.message, true); }
+    }
+
+    closeAllSheets();
+    showToast('Logged: ' + ql.type + ' for ' + ql.animal.tag_number);
+    await loadHerd();
+    await loadTasks();
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  }
+});
+
+// ---- TASKS ----
+async function loadTasks(){
+  try {
+    const data = await api('/tasks?done=false');
+    if (data.__offline) return;
+    const tasks = data.tasks || [];
+    document.getElementById('tasks-count').textContent = tasks.length + ' open';
+    document.getElementById('tasks-empty').style.display = tasks.length ? 'none' : 'block';
+    document.getElementById('tasks-list').innerHTML = tasks.map(t => `
+      <div class="row" data-id="${t.task_id}">
+        <div class="info">
+          <div class="name">${t.title}</div>
+          <div class="meta">${t.due_date || ''}</div>
+        </div>
+        <div class="right"><button class="link-btn" data-done="${t.task_id}">Mark done</button></div>
+      </div>
+    `).join('');
+    document.querySelectorAll('[data-done]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        try {
+          await api('/tasks/' + btn.dataset.done, { method: 'PATCH', body: { done: true } });
+          loadTasks();
+        } catch (err) { showToast(err.message, true); }
+      });
+    });
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+// ---- SALES ----
+async function loadSales(){
+  try {
+    const data = await api('/sales');
+    if (data.__offline) return;
+    const sales = data.sales || [];
+    document.getElementById('sales-count').textContent = sales.length;
+    document.getElementById('sales-empty').style.display = sales.length ? 'none' : 'block';
+    document.getElementById('sales-list').innerHTML = sales.map(s => `
+      <div class="row">
+        <div class="info">
+          <div class="name">${s.buyer_name}</div>
+          <div class="meta">${s.sale_date}</div>
+        </div>
+        <div class="right"><div class="value">${money(s.price)}</div><div class="pill ${s.payment_status.toLowerCase()}">${s.payment_status}</div></div>
+      </div>
+    `).join('');
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+document.getElementById('add-sale-btn').addEventListener('click', () => {
+  const active = animals.filter(a => a.status === 'Active');
+  document.getElementById('sale-animal').innerHTML = active.map(a => `<option value="${a.animal_id}">${a.tag_number} — ${a.breed || ''} ${a.species}</option>`).join('');
+  document.getElementById('sale-buyer').value = '';
+  document.getElementById('sale-price').value = '';
+  document.getElementById('sale-error').style.display = 'none';
+  document.getElementById('sale-sheet').classList.add('open');
+  document.getElementById('sheet-overlay').classList.add('open');
+});
+document.getElementById('sale-submit').addEventListener('click', async () => {
+  const errEl = document.getElementById('sale-error');
+  errEl.style.display = 'none';
+  try {
+    const result = await api('/sales', {
+      method: 'POST',
+      body: {
+        animal_id: Number(document.getElementById('sale-animal').value),
+        buyer_name: document.getElementById('sale-buyer').value.trim(),
+        price: Number(document.getElementById('sale-price').value),
+        client_id: crypto.randomUUID(),
+      },
+    });
+    closeAllSheets();
+    if (result.__queued) { showToast('Saved offline — will sync when back online'); return; }
+    showToast('Sale recorded');
+    await Promise.all([loadSales(), loadHerd(), loadValuation()]);
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  }
+});
+
+// ---- EXPENSES ----
+async function loadExpenses(){
+  try {
+    const data = await api('/expenses');
+    if (data.__offline) return;
+    const expenses = data.expenses || [];
+    document.getElementById('expenses-count').textContent = expenses.length;
+    document.getElementById('expenses-empty').style.display = expenses.length ? 'none' : 'block';
+    document.getElementById('expenses-list').innerHTML = expenses.map(e => `
+      <div class="row">
+        <div class="info">
+          <div class="name">${e.description || e.category}</div>
+          <div class="meta">${e.category} · ${e.expense_date}</div>
+        </div>
+        <div class="right"><div class="value">${money(e.amount)}</div></div>
+      </div>
+    `).join('');
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+document.getElementById('add-expense-btn').addEventListener('click', () => {
+  document.getElementById('expense-amount').value = '';
+  document.getElementById('expense-description').value = '';
+  document.getElementById('expense-error').style.display = 'none';
+  document.getElementById('expense-sheet').classList.add('open');
+  document.getElementById('sheet-overlay').classList.add('open');
+});
+document.getElementById('expense-submit').addEventListener('click', async () => {
+  const errEl = document.getElementById('expense-error');
+  errEl.style.display = 'none';
+  try {
+    const result = await api('/expenses', {
+      method: 'POST',
+      body: {
+        amount: Number(document.getElementById('expense-amount').value),
+        category: document.getElementById('expense-category').value,
+        description: document.getElementById('expense-description').value || undefined,
+        client_id: crypto.randomUUID(),
+      },
+    });
+    closeAllSheets();
+    if (result.__queued) { showToast('Saved offline — will sync when back online'); return; }
+    showToast('Expense saved');
+    await Promise.all([loadExpenses(), loadValuation()]);
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  }
+});
+
+// ---- VALUATION ----
+async function loadValuation(){
+  try {
+    const v = await api('/valuation');
+    if (v.__offline) return;
+    document.getElementById('valuation-ledger').innerHTML = `
+      <div class="ledger-row">
+        <div><div>Live herd value</div><div class="meta" style="color:var(--ink-soft); font-size:0.75rem;">${v.live_herd.animal_count} active animals</div></div>
+        <div class="num">${money(v.live_herd.total_estimated_value)}</div>
+      </div>
+      <div class="ledger-row">
+        <div><div>Sales income</div><div class="meta" style="color:var(--ink-soft); font-size:0.75rem;">${v.sales.sale_count} sales</div></div>
+        <div class="num positive">+${money(v.sales.total_sales_income)}</div>
+      </div>
+      <div class="ledger-row">
+        <div><div>Expenses</div><div class="meta" style="color:var(--ink-soft); font-size:0.75rem;">${v.expenses.expense_count} expenses</div></div>
+        <div class="num negative">−${money(v.expenses.total_expenses)}</div>
+      </div>
+      <div class="ledger-row total">
+        <div>Net cash position</div>
+        <div class="num ${v.net_cash_position >= 0 ? 'positive' : 'negative'}">${v.net_cash_position >= 0 ? '+' : '−'}${money(Math.abs(v.net_cash_position))}</div>
+      </div>
+    `;
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+// ---- MARKETPLACE ----
+document.getElementById('mkt-tab-browse').addEventListener('click', () => {
+  document.getElementById('mkt-tab-browse').style.background = 'var(--ink)';
+  document.getElementById('mkt-tab-browse').style.color = 'var(--paper)';
+  document.getElementById('mkt-tab-mine').style.background = 'none';
+  document.getElementById('mkt-tab-mine').style.color = 'var(--ink-soft)';
+  document.getElementById('mkt-browse-view').style.display = 'block';
+  document.getElementById('mkt-mine-view').style.display = 'none';
+  loadMarketBrowse();
+});
+document.getElementById('mkt-tab-mine').addEventListener('click', () => {
+  document.getElementById('mkt-tab-mine').style.background = 'var(--ink)';
+  document.getElementById('mkt-tab-mine').style.color = 'var(--paper)';
+  document.getElementById('mkt-tab-browse').style.background = 'none';
+  document.getElementById('mkt-tab-browse').style.color = 'var(--ink-soft)';
+  document.getElementById('mkt-mine-view').style.display = 'block';
+  document.getElementById('mkt-browse-view').style.display = 'none';
+  loadMarketMine();
+});
+
+async function loadMarketBrowse(){
+  try {
+    const data = await api('/marketplace');
+    if (data.__offline) return;
+    const listings = data.listings || [];
+    document.getElementById('mkt-browse-count').textContent = listings.length;
+    document.getElementById('mkt-browse-empty').style.display = listings.length ? 'none' : 'block';
+    document.getElementById('mkt-browse-list').innerHTML = listings.map(l => `
+      <div class="row" data-mine="0" data-id="${l.listing_id}">
+        <div class="tag-badge ${speciesClass(l.species)}">${l.tag_number}</div>
+        <div class="info">
+          <div class="name">${l.breed || ''} ${l.species}</div>
+          <div class="meta">${l.farm_location || ''}</div>
+        </div>
+        <div class="right"><div class="value">${l.asking_price ? money(l.asking_price) : 'Ask'}</div></div>
+      </div>
+    `).join('');
+    document.querySelectorAll('#mkt-browse-list .row').forEach(row => {
+      row.addEventListener('click', () => openListingDetail(row.dataset.id, false));
+    });
+  } catch (err) { showToast(err.message, true); }
+}
+
+async function loadMarketMine(){
+  try {
+    const data = await api('/marketplace/mine');
+    if (data.__offline) return;
+    const listings = data.listings || [];
+    document.getElementById('mkt-mine-count').textContent = listings.length;
+    document.getElementById('mkt-mine-empty').style.display = listings.length ? 'none' : 'block';
+    document.getElementById('mkt-mine-list').innerHTML = listings.map(l => `
+      <div class="row" data-id="${l.listing_id}">
+        <div class="tag-badge ${speciesClass(l.species)}">${l.tag_number}</div>
+        <div class="info">
+          <div class="name">${l.breed || ''} ${l.species}</div>
+          <div class="meta">${l.status}</div>
+        </div>
+        <div class="right"><div class="value">${l.asking_price ? money(l.asking_price) : 'Ask'}</div></div>
+      </div>
+    `).join('');
+    document.querySelectorAll('#mkt-mine-list .row').forEach(row => {
+      row.addEventListener('click', () => openListingDetail(row.dataset.id, true));
+    });
+  } catch (err) { showToast(err.message, true); }
+}
+
+document.getElementById('mkt-list-btn').addEventListener('click', () => {
+  const active = animals.filter(a => a.status === 'Active');
+  document.getElementById('listing-animal').innerHTML = active.map(a => `<option value="${a.animal_id}">${a.tag_number} — ${a.breed || ''} ${a.species}</option>`).join('');
+  document.getElementById('listing-price').value = '';
+  document.getElementById('listing-description').value = '';
+  document.getElementById('listing-error').style.display = 'none';
+  document.getElementById('listing-sheet').classList.add('open');
+  document.getElementById('sheet-overlay').classList.add('open');
+});
+document.getElementById('listing-submit').addEventListener('click', async () => {
+  const errEl = document.getElementById('listing-error');
+  errEl.style.display = 'none';
+  try {
+    const result = await api('/marketplace', {
+      method: 'POST',
+      body: {
+        animal_id: Number(document.getElementById('listing-animal').value),
+        asking_price: document.getElementById('listing-price').value ? Number(document.getElementById('listing-price').value) : undefined,
+        description: document.getElementById('listing-description').value || undefined,
+        client_id: crypto.randomUUID(),
+      },
+    });
+    closeAllSheets();
+    if (result.__queued) { showToast('Saved offline — will sync when back online'); return; }
+    showToast('Listing published');
+    await loadMarketMine();
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  }
+});
+
+let currentListing = null;
+async function openListingDetail(listingId, isMine){
+  try {
+    const data = await api('/marketplace/' + listingId);
+    currentListing = data.listing;
+    document.getElementById('ld-title').textContent = `${currentListing.tag_number} — ${currentListing.breed || ''} ${currentListing.species}`;
+    document.getElementById('ld-meta').textContent = currentListing.asking_price ? money(currentListing.asking_price) : 'Price on request';
+    document.getElementById('ld-description').textContent = currentListing.description || '';
+
+    if (isMine) {
+      document.getElementById('ld-contact-block').innerHTML = '<p class="meta">This is your listing.</p>';
+      document.getElementById('ld-owner-actions').style.display = 'block';
+      document.getElementById('ld-buyer-phone').value = '';
+      document.getElementById('ld-final-price').value = currentListing.asking_price || '';
+      document.getElementById('ld-error').style.display = 'none';
+    } else {
+      document.getElementById('ld-contact-block').innerHTML = `
+        <div><strong>${currentListing.seller_name}</strong></div>
+        <div class="meta">${currentListing.seller_phone}</div>
+        <div class="meta">${currentListing.farm_location || ''}</div>
+      `;
+      document.getElementById('ld-owner-actions').style.display = 'none';
+    }
+
+    document.getElementById('listing-detail-sheet').classList.add('open');
+    document.getElementById('sheet-overlay').classList.add('open');
+  } catch (err) { showToast(err.message, true); }
+}
+
+document.getElementById('ld-cancel-btn').addEventListener('click', async () => {
+  try {
+    await api('/marketplace/' + currentListing.listing_id, { method: 'PATCH', body: { status: 'Cancelled' } });
+    closeAllSheets();
+    showToast('Listing cancelled');
+    await loadMarketMine();
+  } catch (err) { showToast(err.message, true); }
+});
+
+document.getElementById('ld-mark-sold-btn').addEventListener('click', async () => {
+  const errEl = document.getElementById('ld-error');
+  errEl.style.display = 'none';
+  try {
+    const phone = document.getElementById('ld-buyer-phone').value.trim();
+    const price = Number(document.getElementById('ld-final-price').value);
+    if (!phone || !price) throw new Error('Buyer phone and final price are required');
+
+    const lookup = await api('/users/lookup?phone=' + encodeURIComponent(phone));
+    await api('/marketplace/' + currentListing.listing_id + '/mark-sold', {
+      method: 'POST',
+      body: { buyer_user_id: lookup.user.user_id, price, client_id: crypto.randomUUID() },
+    });
+    closeAllSheets();
+    showToast('Sale recorded — ' + lookup.user.name);
+    await Promise.all([loadMarketMine(), loadHerd(), loadSales(), loadValuation()]);
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  }
+});
+</script>
+</body>
+</html>
