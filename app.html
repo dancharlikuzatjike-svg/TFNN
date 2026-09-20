@@ -167,7 +167,14 @@ button.primary{
       <p class="sub" id="app-farm-location"></p>
       <p class="sub" id="sync-badge" style="display:none; color:var(--gold); font-weight:600;"></p>
     </div>
-    <button id="logout-btn">Log out</button>
+    <div style="display:flex; align-items:center; gap:14px;">
+      <button id="bell-btn" style="position:relative; background:none; border:none; cursor:pointer; padding:4px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:22px; height:22px;"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <span id="bell-badge" style="display:none; position:absolute; top:-2px; right:-2px; background:var(--cattle); color:#fff; font-size:0.62rem; font-weight:700; border-radius:10px; padding:1px 5px;"></span>
+      </button>
+      <button id="settings-btn" style="background:none; border:none; font-size:1.1rem; cursor:pointer; padding:4px;">⚙️</button>
+      <button id="logout-btn">Log out</button>
+    </div>
   </div>
 
   <div class="content">
@@ -389,6 +396,35 @@ button.primary{
     <div id="imp-summary-errors" style="font-size:0.8rem; color:var(--ink-soft); max-height:160px; overflow-y:auto;"></div>
     <button class="primary" id="imp-close-btn" style="margin-top:16px;">Close</button>
   </div>
+</div>
+
+<div class="sheet" id="notifications-sheet">
+  <div class="sheet-handle"></div>
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+    <div class="ql-title" style="margin:0;">Notifications</div>
+    <button class="link-btn" id="mark-all-read-btn">Mark all read</button>
+  </div>
+  <div id="notifications-list"></div>
+  <div class="empty-note" id="notifications-empty" style="display:none;">No notifications yet.</div>
+</div>
+
+<div class="sheet" id="settings-sheet">
+  <div class="sheet-handle"></div>
+  <div class="ql-title">Settings</div>
+  <label>Email (for email notifications)</label>
+  <input type="email" id="settings-email" placeholder="you@example.com">
+  <label>District</label>
+  <select id="settings-district">
+    <option value="">— Not set —</option>
+    <option>Erongo</option><option>Hardap</option><option>ǁKaras</option>
+    <option>Kavango East</option><option>Kavango West</option><option>Khomas</option>
+    <option>Kunene</option><option>Ohangwena</option><option>Omaheke</option>
+    <option>Omusati</option><option>Oshana</option><option>Oshikoto</option>
+    <option>Otjozondjupa</option><option>Zambezi</option>
+  </select>
+  <button class="link-btn" id="enable-push-btn" style="border:1px dashed var(--line); border-radius:var(--radius); padding:10px; width:100%; text-decoration:none; margin-bottom:14px;">🔔 Enable push notifications on this device</button>
+  <div class="error-msg" id="settings-error" style="display:none;"></div>
+  <button class="primary" id="settings-save-btn">Save</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -617,7 +653,7 @@ async function enterApp(){
   document.getElementById('app-farm-location').textContent = currentUser.farm_location || '';
   await updateSyncBadge();
   await syncOutbox();
-  await Promise.all([loadHerd(), loadTasks(), loadSales(), loadExpenses(), loadValuation(), loadMarketBrowse()]);
+  await Promise.all([loadHerd(), loadTasks(), loadSales(), loadExpenses(), loadValuation(), loadMarketBrowse(), loadNotifications()]);
 }
 
 // ---- Tab switching ----
@@ -1289,6 +1325,109 @@ document.getElementById('imp-import-btn').addEventListener('click', async () => 
 });
 
 document.getElementById('imp-close-btn').addEventListener('click', closeAllSheets);
+
+// ---- NOTIFICATIONS ----
+async function loadNotifications(){
+  try {
+    const data = await api('/notifications');
+    if (data.__offline) return;
+    const badge = document.getElementById('bell-badge');
+    if (data.unread_count > 0) {
+      badge.textContent = data.unread_count > 9 ? '9+' : data.unread_count;
+      badge.style.display = 'block';
+    } else {
+      badge.style.display = 'none';
+    }
+    const items = data.notifications || [];
+    document.getElementById('notifications-empty').style.display = items.length ? 'none' : 'block';
+    document.getElementById('notifications-list').innerHTML = items.map(n => `
+      <div class="row" data-id="${n.notification_id}" style="opacity:${n.read_at ? 0.55 : 1};">
+        <div class="info">
+          <div class="name">${n.title}</div>
+          <div class="meta">${n.body || ''}</div>
+        </div>
+      </div>
+    `).join('');
+    document.querySelectorAll('#notifications-list .row').forEach(row => {
+      row.addEventListener('click', async () => {
+        try { await api('/notifications/' + row.dataset.id, { method: 'PATCH', body: {} }); loadNotifications(); } catch (e) {}
+      });
+    });
+  } catch (err) { /* silent - notification bell isn't worth an error toast */ }
+}
+document.getElementById('bell-btn').addEventListener('click', () => {
+  loadNotifications();
+  document.getElementById('notifications-sheet').classList.add('open');
+  document.getElementById('sheet-overlay').classList.add('open');
+});
+document.getElementById('mark-all-read-btn').addEventListener('click', async () => {
+  try { await api('/notifications/read-all', { method: 'POST', body: {} }); loadNotifications(); } catch (err) { showToast(err.message, true); }
+});
+
+// ---- SETTINGS ----
+document.getElementById('settings-btn').addEventListener('click', async () => {
+  try {
+    const data = await api('/users/me');
+    document.getElementById('settings-email').value = data.user.email || '';
+    document.getElementById('settings-district').value = data.user.district || '';
+  } catch (err) { /* fields just start blank */ }
+  document.getElementById('settings-error').style.display = 'none';
+  document.getElementById('settings-sheet').classList.add('open');
+  document.getElementById('sheet-overlay').classList.add('open');
+});
+document.getElementById('settings-save-btn').addEventListener('click', async () => {
+  const errEl = document.getElementById('settings-error');
+  errEl.style.display = 'none';
+  try {
+    await api('/users/me', {
+      method: 'PATCH',
+      body: {
+        email: document.getElementById('settings-email').value.trim() || undefined,
+        district: document.getElementById('settings-district').value || undefined,
+      },
+    });
+    closeAllSheets();
+    showToast('Settings saved');
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  }
+});
+
+// ---- PUSH SUBSCRIPTION ----
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+}
+document.getElementById('enable-push-btn').addEventListener('click', async () => {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    showToast('Push notifications are not supported on this browser', true);
+    return;
+  }
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') { showToast('Permission not granted', true); return; }
+
+    const keyData = await api('/notifications/push/vapid-public-key');
+    if (!keyData.publicKey) { showToast('Push is not configured on the server yet', true); return; }
+
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(keyData.publicKey),
+    });
+    const subJson = subscription.toJSON();
+    await api('/notifications/push/subscribe', {
+      method: 'POST',
+      body: { endpoint: subJson.endpoint, keys: subJson.keys },
+    });
+    showToast('Push notifications enabled on this device');
+  } catch (err) {
+    showToast('Could not enable push: ' + err.message, true);
+  }
+});
 </script>
 </body>
 </html>
