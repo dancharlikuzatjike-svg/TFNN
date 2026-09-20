@@ -127,7 +127,37 @@ CREATE INDEX IF NOT EXISTS idx_event_superseded ON animal_event(superseded_by);
 -- Append this to the BOTTOM of sql/schema.sql, then re-run your usual
 -- migrate step (Start Command -> `npm run migrate && npm start`, redeploy, revert).
 -- Safe to re-run: all statements are idempotent.
+-- Notifications: in-app records, email address, and Web Push subscriptions
+-- Append this to the BOTTOM of sql/schema.sql, then re-run your usual
+-- migrate step (Start Command -> `npm run migrate && npm start`, redeploy, revert).
+-- Safe to re-run: all statements are idempotent.
 
+-- users never had an email column - only phone. Needed for email notifications.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(150);
+
+CREATE TABLE IF NOT EXISTS notification (
+    notification_id SERIAL PRIMARY KEY,
+    user_id      INT NOT NULL REFERENCES users(user_id),
+    title        VARCHAR(150) NOT NULL,
+    body         TEXT,
+    ref_type     VARCHAR(30),
+    ref_id       INT,
+    read_at      TIMESTAMP,
+    created_at   TIMESTAMP DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_notification_user ON notification(user_id);
+CREATE INDEX IF NOT EXISTS idx_notification_unread ON notification(user_id, read_at);
+
+-- One row per device/browser that has subscribed to push notifications
+CREATE TABLE IF NOT EXISTS push_subscription (
+    subscription_id SERIAL PRIMARY KEY,
+    user_id      INT NOT NULL REFERENCES users(user_id),
+    endpoint     TEXT NOT NULL UNIQUE,
+    p256dh       TEXT NOT NULL,
+    auth         TEXT NOT NULL,
+    created_at   TIMESTAMP DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_push_sub_user ON push_subscription(user_id);
 CREATE TABLE IF NOT EXISTS sale (
     sale_id        SERIAL PRIMARY KEY,
     animal_id      INT NOT NULL REFERENCES animal(animal_id),
