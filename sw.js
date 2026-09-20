@@ -28,3 +28,29 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then((cached) => cached || fetch(event.request))
   );
 });
+
+// ---- Push notifications ----
+self.addEventListener('push', (event) => {
+  let data = { title: 'TFNN', body: '' };
+  try { data = event.data.json(); } catch (e) { /* keep default */ }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'TFNN', {
+      body: data.body || '',
+      icon: 'icon-192.png',
+      badge: 'icon-192.png',
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window' }).then((clients) => {
+      for (const client of clients) {
+        if ('focus' in client) return client.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow('./app.html');
+    })
+  );
+});
