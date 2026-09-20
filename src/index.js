@@ -18,6 +18,7 @@ const valuationRoutes = require('./routes/valuation');
 const mediaRoutes = require('./routes/media');
 const statementRoutes = require('./routes/statement');
 const marketplaceRoutes = require('./routes/marketplace');
+const notificationRoutes = require('./routes/notifications');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -43,6 +44,7 @@ app.use('/api/v1/valuation', valuationRoutes);
 app.use('/api/v1/media', mediaRoutes);
 app.use('/api/v1/statement', statementRoutes);
 app.use('/api/v1/marketplace', marketplaceRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
 
 // 404 for anything unmatched - must stay LAST, after every real route above
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
