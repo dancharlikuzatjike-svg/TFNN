@@ -11,6 +11,10 @@ function errorHandler(err, req, res, next) {
     // Postgres foreign_key_violation - referenced row doesn't exist
     return res.status(400).json({ error: 'Referenced record was not found.' });
   }
+  if (err.code === '23514') {
+    // Postgres check_violation - value doesn't match an allowed set (e.g. species, event_type)
+    return res.status(400).json({ error: 'One of the values submitted is not valid. Please check your entry and try again.' });
+  }
 
   const status = err.status || 500;
   const message = status === 500 ? 'Something went wrong on our end.' : err.message;
