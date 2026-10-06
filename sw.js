@@ -1,8 +1,8 @@
 // App-shell cache only. API calls (a different origin - your Render backend)
 // are deliberately never intercepted here; the app itself handles those via
 // the outbox in app.html, since a queued write needs real logic, not a cache.
-const CACHE_NAME = 'tfnn-shell-v2';
-const SHELL_FILES = ['./', './index.html', './app.html', './manifest.json', './icon-192.png', './icon-512.png'];
+const CACHE_NAME = 'tfnn-shell-v3';
+const SHELL_FILES = ['./', './index.html', './app.html', './manifest.json', './icon-192.png', './icon-512.png', './emblem.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

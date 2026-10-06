@@ -6,6 +6,8 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#262019">
 <link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#0d2c1a">
 <title>TFNN — Farmers Network Namibia</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700&family=Work+Sans:wght@400;500;600;700&display=swap');
@@ -134,7 +136,7 @@ button.primary{
 @keyframes tfnnDot{0%,100%{opacity:.3}50%{opacity:1}}
 </style>
 <div id="tfnn-splash" aria-hidden="true">
-  <div class="mark">TFNN</div>
+  <img src="emblem.png" alt="TFNN" width="132" height="132" style="border-radius:50%">
   <div class="name">The Farmers Network Namibia</div>
   <div class="dots"><i></i><i></i><i></i></div>
   <div class="wake" id="tfnn-wake">Waking up the server — the first open can take up to a minute…</div>
@@ -154,6 +156,7 @@ button.primary{
 
 <!-- AUTH SCREEN -->
 <div id="screen-auth">
+  <img src="emblem.png" alt="" width="96" height="96" style="display:block; margin:0 0 12px; border-radius:50%;">
   <h1>TFNN</h1>
   <p class="tag">The Farmers Network Namibia</p>
 
@@ -197,10 +200,13 @@ button.primary{
 <!-- MAIN APP -->
 <div id="screen-app" style="display:none;">
   <div class="topbar">
-    <div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <img src="emblem.png" alt="TFNN" width="40" height="40" style="border-radius:50%; flex:none;">
+      <div>
       <p class="farm" id="app-farmer-name"></p>
       <p class="sub" id="app-farm-location"></p>
       <p class="sub" id="sync-badge" style="display:none; color:var(--gold); font-weight:600;"></p>
+      </div>
     </div>
     <div style="display:flex; align-items:center; gap:14px;">
       <button id="bell-btn" style="position:relative; background:none; border:none; cursor:pointer; padding:4px;">
