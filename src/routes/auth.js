@@ -54,7 +54,7 @@ router.post('/register', async (req, res, next) => {
     if (!approved) {
       return res.status(201).json({
         user,
-        message: 'Account created. Supplier and vet accounts must be approved by an admin before you can log in.',
+        message: 'Account created. Supplier and vet accounts are approved by an admin after the registration fee is paid and checked. We will contact you with the payment details.',
       });
     }
 

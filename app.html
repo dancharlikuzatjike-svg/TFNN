@@ -113,6 +113,11 @@ details.month .mbody{ padding:0 14px 8px; }
 .alert-line{ font-size:0.82rem; padding:6px 0 6px 10px; border-left:3px solid var(--line); margin:4px 0; }
 .alert-line.bad{ border-color:#b3392b; } .alert-line.warn{ border-color:#b8892b; }
 .card .actions{ display:flex; gap:8px; margin-top:10px; }
+.mbanner{ display:none; margin:0 0 12px; padding:10px 12px; border-radius:var(--radius); font-size:0.84rem; background:#f3e2b3; }
+.mbanner.bad{ background:#f1c4bd; }
+.mbanner button{ margin-left:8px; border:1px solid var(--ink); background:none; border-radius:12px; padding:2px 10px; font-size:0.78rem; cursor:pointer; }
+.pay-row{ display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+.pay-row button{ border:1px solid var(--line); background:none; border-radius:14px; padding:4px 10px; font-size:0.76rem; cursor:pointer; }
 .tabbar{ position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:430px; display:flex; background:var(--paper-raised); border-top:1px solid var(--line); z-index:10; }
 .tabbar button{ flex:1; background:none; border:none; padding:9px 0 7px; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:0.66rem; color:var(--ink-soft); cursor:pointer; }
 .tabbar button svg{ width:18px; height:18px; stroke:var(--ink-soft); }
@@ -243,6 +248,7 @@ details.month .mbody{ padding:0 14px 8px; }
   </div>
 
   <div class="content">
+    <div class="mbanner" id="member-banner"></div>
     <div class="panel active" id="panel-herd">
       <div class="section-title">Herd <span class="count" id="herd-count"></span></div>
       <div style="display:flex; gap:10px; margin-bottom:14px;">
@@ -531,6 +537,11 @@ details.month .mbody{ padding:0 14px 8px; }
 <div class="sheet" id="settings-sheet">
   <div class="sheet-handle"></div>
   <div class="ql-title">Settings</div>
+  <div class="card" id="membership-box" style="display:none;">
+    <h3>Membership</h3>
+    <div id="membership-info" style="font-size:0.86rem; line-height:1.5;"></div>
+    <button class="primary" id="member-paid-btn" style="margin-top:10px; padding:9px;">I have paid</button>
+  </div>
   <label>Email (for email notifications)</label>
   <input type="email" id="settings-email" placeholder="you@example.com">
   <label style="display:flex; align-items:center; gap:8px; margin:6px 0 12px;"><input type="checkbox" id="settings-email-on" style="width:auto; margin:0;"> Email me alerts, reminders and news</label>
@@ -558,6 +569,21 @@ details.month .mbody{ padding:0 14px 8px; }
     <div class="error-msg" id="bc-error" style="display:none;"></div>
     <button class="primary" id="bc-send-btn">Send to farmers</button>
     <button class="link-btn" id="bc-test-btn" style="margin-top:8px;">Send myself a test email</button>
+  </div>
+  <div id="admin-billing-box" style="display:none; margin-top:18px; padding-top:14px; border-top:1px solid var(--line);">
+    <div class="ql-title" style="font-size:1rem;">Membership payments (admin)</div>
+    <div id="ab-summary" style="font-size:0.85rem; margin-bottom:8px;"></div>
+    <div id="ab-claims"></div>
+    <label for="ab-phone">Record a payment for phone number</label>
+    <input type="tel" id="ab-phone" placeholder="0811234567">
+    <div class="pay-row">
+      <button data-pay="registration">Registration fee</button>
+      <button data-pay="1">1 month</button>
+      <button data-pay="3">3 months</button>
+      <button data-pay="12">12 months</button>
+    </div>
+    <div class="error-msg" id="ab-error" style="display:none;"></div>
+    <div id="ab-recent" style="font-size:0.8rem; color:var(--ink-soft); margin-top:10px;"></div>
   </div>
 </div>
 
@@ -869,7 +895,7 @@ async function enterApp(){
   document.getElementById('app-farm-location').textContent = currentUser.farm_location || '';
   await updateSyncBadge();
   await syncOutbox();
-  await Promise.all([loadHerd(), loadTasks(), loadSales(), loadExpenses(), loadValuation(), loadMarketBrowse(), loadNotifications()]);
+  await Promise.all([loadHerd(), loadTasks(), loadSales(), loadExpenses(), loadValuation(), loadMarketBrowse(), loadNotifications(), loadMembership(false)]);
 }
 
 // ---- Boot: restore a saved session so a reload / reopening the app keeps you signed in ----
@@ -1685,6 +1711,8 @@ document.getElementById('settings-btn').addEventListener('click', async () => {
     if (currentUser && data.user.role) currentUser.role = data.user.role;
   } catch (err) { /* fields just start blank */ }
   loadAdminEmailBox();
+  loadAdminBilling();
+  loadMembership(true);
   document.getElementById('settings-error').style.display = 'none';
   document.getElementById('settings-sheet').classList.add('open');
   document.getElementById('sheet-overlay').classList.add('open');
@@ -1885,6 +1913,80 @@ document.getElementById('bull-list').addEventListener('click', (e) => {
   if (!btn) return;
   const bull = (window.__bulls || []).find(b => String(b.animal_id) === btn.dataset.bull);
   if (bull) openBullLog(bull, btn.dataset.quick);
+});
+
+// ---- MEMBERSHIP ----
+const nad = (n) => 'N$' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
+let membershipData = null;
+async function loadMembership(showBox) {
+  try {
+    const d = await api('/billing/me');
+    if (d.__offline) return;
+    membershipData = d;
+    const m = d.membership;
+    const banner = document.getElementById('member-banner');
+    banner.style.display = 'none';
+    if (m.status !== 'admin') {
+      if (m.status === 'expired') { banner.className = 'mbanner bad'; banner.innerHTML = 'Your membership has expired. You can still view your records. <button id="mb-open">Renew</button>'; banner.style.display = 'block'; }
+      else if (m.status === 'trial' && m.days_left <= 7) { banner.className = 'mbanner'; banner.innerHTML = 'Your free trial ends in ' + m.days_left + ' day' + (m.days_left === 1 ? '' : 's') + '. <button id="mb-open">See how to pay</button>'; banner.style.display = 'block'; }
+      else if (m.status === 'active' && m.days_left <= 7) { banner.className = 'mbanner'; banner.innerHTML = 'Your membership renews in ' + m.days_left + ' day' + (m.days_left === 1 ? '' : 's') + '. <button id="mb-open">See how to pay</button>'; banner.style.display = 'block'; }
+      const open = document.getElementById('mb-open');
+      if (open) open.addEventListener('click', () => document.getElementById('settings-btn').click());
+    }
+    const box = document.getElementById('membership-box');
+    if (!showBox || m.status === 'admin') { box.style.display = 'none'; return; }
+    box.style.display = '';
+    const label = { active: 'Active until ' + m.paid_until, trial: 'Free trial, ' + m.days_left + ' days left', expired: 'Expired' }[m.status];
+    let html = '<div><strong>' + esc(m.tier_label) + '</strong> · ' + esc(label) + '</div>' +
+      '<div>Monthly fee: ' + nad(m.monthly_fee) + (m.registration_paid ? '' : ' · Registration fee (once): ' + nad(m.registration_fee)) + '</div>';
+    if (m.status !== 'active') html += '<div><strong>Due now: ' + nad(m.amount_due_now) + '</strong></div>';
+    if (d.how_to_pay.instructions) html += '<div style="margin-top:6px;">' + esc(d.how_to_pay.instructions).replace(/\n/g, '<br>') + '</div>';
+    html += '<div>Payment reference: <strong>' + esc(d.how_to_pay.reference) + '</strong></div>';
+    if (d.payment_claimed_at) html += '<div style="color:var(--ink-soft);">You told us you paid. We will confirm it shortly.</div>';
+    html += '<div style="color:var(--ink-soft); margin-top:6px;">Marketplace fee: ' + esc(d.pricing.marketplace_fee_percent) + '% of the sale price.</div>';
+    document.getElementById('membership-info').innerHTML = html;
+    document.getElementById('member-paid-btn').style.display = m.status === 'active' && m.days_left > 7 ? 'none' : '';
+  } catch (err) { /* banner just stays hidden */ }
+}
+document.getElementById('member-paid-btn').addEventListener('click', async () => {
+  try { const r = await api('/billing/claim', { method: 'POST', body: {} }); showToast(r.message || 'Thanks'); loadMembership(true); }
+  catch (err) { showToast(err.message, true); }
+});
+async function loadAdminBilling() {
+  const box = document.getElementById('admin-billing-box');
+  if (!currentUser || currentUser.role !== 'admin') { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  try {
+    const d = await api('/admin/billing');
+    document.getElementById('ab-summary').innerHTML = 'Received this month: <strong>' + nad(d.totals.this_month) + '</strong> · last 12 months: ' + nad(d.totals.last_12_months);
+    document.getElementById('ab-claims').innerHTML = d.claims.length
+      ? '<div style="font-size:0.82rem; margin-bottom:6px;"><strong>Says they paid:</strong></div>' + d.claims.map(c =>
+          '<div class="row" style="cursor:pointer;" data-phone="' + esc(c.phone) + '"><div class="info"><div class="name">' + esc(c.name) + '</div><div class="meta">' + esc(c.phone) + ' · ' + esc(c.role) + ' · tap to fill the number</div></div></div>').join('')
+      : '<div class="meta" style="font-size:0.82rem; margin-bottom:6px;">Nobody is waiting for a payment check.</div>';
+    document.getElementById('ab-recent').innerHTML = d.recent.length ? '<strong>Recent:</strong><br>' + d.recent.map(p =>
+      esc(p.paid_on).slice(0, 10) + ' · ' + esc(p.name) + ' · ' + esc(p.kind) + ' · ' + nad(p.amount)).join('<br>') : '';
+  } catch (err) { /* leave empty */ }
+}
+document.getElementById('ab-claims').addEventListener('click', (e) => {
+  const row = e.target.closest('[data-phone]');
+  if (row) document.getElementById('ab-phone').value = row.dataset.phone;
+});
+document.querySelector('#admin-billing-box .pay-row').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-pay]');
+  if (!btn) return;
+  const errEl = document.getElementById('ab-error');
+  errEl.style.display = 'none';
+  const phone = document.getElementById('ab-phone').value.trim();
+  if (!phone) { errEl.textContent = 'Type the phone number first'; errEl.style.display = 'block'; return; }
+  const kind = btn.dataset.pay === 'registration' ? 'registration' : 'membership';
+  const months = kind === 'membership' ? Number(btn.dataset.pay) : undefined;
+  if (!confirm('Record ' + btn.textContent + ' as received from ' + phone + '?')) return;
+  try {
+    const r = await api('/admin/payments', { method: 'POST', body: { phone, kind, months } });
+    showToast('Recorded for ' + r.user.name + (r.membership.paid_until ? ' · paid until ' + r.membership.paid_until : ''));
+    document.getElementById('ab-phone').value = '';
+    loadAdminBilling();
+  } catch (err) { errEl.textContent = err.message; errEl.style.display = 'block'; }
 });
 
 // ---- ADMIN: EMAIL FARMERS ----

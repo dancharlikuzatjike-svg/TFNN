@@ -5,6 +5,7 @@ const DISTRICTS = require('../utils/districts');
 const { notifyMany, farmerIds, countAudience, inBackground, sendApproved } = require('../utils/notify');
 const { sendEmail, composeEmail, appUrl, fromAddress, isSandbox, isConfigured } = require('../utils/email');
 const { sendTaskReminders } = require('../utils/reminders');
+const { PRICING, membershipFor } = require('../utils/pricing');
 
 const router = express.Router();
 router.use(requireAuth, requireRole('admin'));
@@ -190,6 +191,79 @@ router.post('/task-reminders', async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+// ---- Membership payments ----
+async function findUser(body) {
+  if (body.user_id) {
+    return (await db.query('SELECT * FROM users WHERE user_id = $1', [Number(body.user_id)])).rows[0];
+  }
+  const last9 = String(body.phone || '').replace(/\D/g, '').slice(-9);
+  if (last9.length < 9) return null;
+  return (await db.query(
+    `SELECT * FROM users WHERE right(regexp_replace(phone, '\\D', '', 'g'), 9) = $1 LIMIT 1`, [last9])).rows[0];
+}
+
+// POST /api/v1/admin/payments - record money you received. { user_id | phone, kind: 'registration' | 'membership', months?, amount?, note? }
+router.post('/payments', async (req, res, next) => {
+  try {
+    const { kind, note } = req.body;
+    if (!['registration', 'membership'].includes(kind)) return res.status(400).json({ error: "kind must be 'registration' or 'membership'" });
+    const u = await findUser(req.body);
+    if (!u) return res.status(404).json({ error: 'No user found with that phone number or id' });
+    if (u.role === 'admin') return res.status(400).json({ error: 'Admins are not charged' });
+    const m = await membershipFor(u);
+    let months = null;
+    let amount = req.body.amount != null ? Number(req.body.amount) : null;
+    if (kind === 'membership') {
+      months = req.body.months != null ? Number(req.body.months) : 1;
+      if (!Number.isInteger(months) || months < 1 || months > 24) return res.status(400).json({ error: 'months must be a whole number from 1 to 24' });
+      if (amount == null) amount = m.monthly_fee * months;
+    } else if (amount == null) {
+      amount = m.registration_fee;
+    }
+    if (!(amount >= 0) || amount > 1000000) return res.status(400).json({ error: 'amount is not valid' });
+
+    const client = await db.pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(
+        `INSERT INTO payment (user_id, kind, amount, months, recorded_by, note) VALUES ($1,$2,$3,$4,$5,$6)`,
+        [u.user_id, kind, amount, months, req.auth.user_id, note ? String(note).slice(0, 200) : null]);
+      if (kind === 'registration') {
+        await client.query('UPDATE users SET reg_fee_paid_on = CURRENT_DATE, payment_claimed_at = NULL WHERE user_id = $1', [u.user_id]);
+      } else {
+        await client.query(
+          `UPDATE users SET paid_until = (GREATEST(COALESCE(paid_until, CURRENT_DATE), CURRENT_DATE) + ($2 || ' months')::interval)::date,
+                  payment_claimed_at = NULL WHERE user_id = $1`, [u.user_id, String(months)]);
+      }
+      await client.query('COMMIT');
+    } catch (e) { await client.query('ROLLBACK'); throw e; } finally { client.release(); }
+    const fresh = (await db.query('SELECT * FROM users WHERE user_id = $1', [u.user_id])).rows[0];
+    res.status(201).json({ user: { user_id: fresh.user_id, name: fresh.name, phone: fresh.phone }, membership: await membershipFor(fresh) });
+  } catch (err) { next(err); }
+});
+
+// GET /api/v1/admin/billing - who says they paid, who is about to lapse, and what came in
+router.get('/billing', async (req, res, next) => {
+  try {
+    const claims = await db.query(
+      `SELECT user_id, name, phone, role, payment_claimed_at, paid_until, reg_fee_paid_on FROM users
+       WHERE payment_claimed_at IS NOT NULL ORDER BY payment_claimed_at`);
+    const expiring = await db.query(
+      `SELECT user_id, name, phone, role, paid_until FROM users
+       WHERE role IN ('farmer','vet','supplier') AND paid_until IS NOT NULL AND paid_until <= CURRENT_DATE + 7
+       ORDER BY paid_until LIMIT 50`);
+    const totals = await db.query(
+      `SELECT COALESCE(SUM(amount) FILTER (WHERE date_trunc('month', paid_on) = date_trunc('month', CURRENT_DATE)), 0)::float AS this_month,
+              COALESCE(SUM(amount) FILTER (WHERE paid_on >= CURRENT_DATE - 365), 0)::float AS last_12_months,
+              COALESCE(SUM(amount), 0)::float AS all_time
+       FROM payment`);
+    const recent = await db.query(
+      `SELECT p.payment_id, p.kind, p.amount::float AS amount, p.months, p.paid_on, u.name, u.phone
+       FROM payment p JOIN users u ON u.user_id = p.user_id ORDER BY p.payment_id DESC LIMIT 15`);
+    res.json({ claims: claims.rows, expiring: expiring.rows, totals: totals.rows[0], recent: recent.rows, pricing: PRICING() });
+  } catch (err) { next(err); }
 });
 
 module.exports = router;

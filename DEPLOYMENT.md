@@ -30,6 +30,7 @@ Env vars that must be set in Render:
 - [ ] `RESEND_API_KEY` (a Resend "sending access" key)
 - [ ] `RESEND_FROM_ADDRESS` e.g. `TFNN <hello@yourdomain>` once your domain is verified in Resend (until then Resend only delivers to the account owner)
 - [ ] `APP_URL` (optional, defaults to the Render URL) and `CRON_SECRET` (optional; enables `POST /api/v1/jobs/task-reminders` with header `x-cron-secret` for daily task reminders)
+- [ ] `PAYMENT_INSTRUCTIONS` (bank/wallet details shown to members), `BILLING_ENFORCED=true` (turn on only when you are ready: expired members can then view but not change records). Fees can be overridden with FEE_MONTHLY_SMALL/BIG/HUGE/VET/SUPPLIER, FEE_REG_SMALL/BIG/VET/SUPPLIER, BIG_FARM_FROM, HUGE_FARM_FROM, MARKETPLACE_FEE_PERCENT.
 - [ ] `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`
 
 Frontend files (GitHub Pages, same folder as `app.html`):

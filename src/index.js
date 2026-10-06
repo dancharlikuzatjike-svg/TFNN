@@ -21,6 +21,8 @@ const marketplaceRoutes = require('./routes/marketplace');
 const notificationRoutes = require('./routes/notifications');
 const jobsRoutes = require('./routes/jobs');
 const bullRoutes = require('./routes/bulls');
+const billingRoutes = require('./routes/billing');
+const billingGate = require('./middleware/billing');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -43,6 +45,8 @@ app.get('/', sendFrontend('app.html'));
 
 // Jobs use their own secret, so mount before the routers that apply login to everything under /api/v1
 app.use('/api/v1/jobs', jobsRoutes);
+app.use('/api/v1', billingGate);
+app.use('/api/v1/billing', billingRoutes);
 app.use('/api/v1/bulls', bullRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/animals', animalRoutes);

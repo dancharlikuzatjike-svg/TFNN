@@ -296,3 +296,22 @@ CREATE TABLE IF NOT EXISTS email_log (
     created_at  TIMESTAMP DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_email_log_user_kind ON email_log(user_id, kind, created_at);
+
+-- ---- Membership & billing ----
+ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_ends DATE DEFAULT (CURRENT_DATE + 30);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS paid_until DATE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS reg_fee_paid_on DATE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS payment_claimed_at TIMESTAMP;
+CREATE TABLE IF NOT EXISTS payment (
+    payment_id  SERIAL PRIMARY KEY,
+    user_id     INT NOT NULL REFERENCES users(user_id),
+    kind        VARCHAR(20) NOT NULL CHECK (kind IN ('registration','membership')),
+    amount      NUMERIC(10,2) NOT NULL,
+    months      INT,
+    paid_on     DATE NOT NULL DEFAULT CURRENT_DATE,
+    recorded_by INT REFERENCES users(user_id),
+    note        VARCHAR(200),
+    created_at  TIMESTAMP DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_payment_user ON payment(user_id);
+CREATE INDEX IF NOT EXISTS idx_payment_date ON payment(paid_on);
