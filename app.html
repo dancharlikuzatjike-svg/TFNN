@@ -182,6 +182,8 @@ button.primary{
       <option value="supplier">Feed supplier</option>
       <option value="vet">Vet</option>
     </select>
+    <label>Email (optional — for welcome and alert emails)</label>
+    <input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email">
     <label>Farm location (optional)</label>
     <input type="text" id="reg-farm-location">
     <div class="error-msg" id="register-error" style="display:none;"></div>
@@ -471,6 +473,7 @@ button.primary{
   <div class="ql-title">Settings</div>
   <label>Email (for email notifications)</label>
   <input type="email" id="settings-email" placeholder="you@example.com">
+  <label style="display:flex; align-items:center; gap:8px; margin:6px 0 12px;"><input type="checkbox" id="settings-email-on" style="width:auto; margin:0;"> Email me alerts, reminders and news</label>
   <label>District</label>
   <select id="settings-district">
     <option value="">— Not set —</option>
@@ -483,6 +486,19 @@ button.primary{
   <button class="link-btn" id="enable-push-btn" style="border:1px dashed var(--line); border-radius:var(--radius); padding:10px; width:100%; text-decoration:none; margin-bottom:14px;">🔔 Enable push notifications on this device</button>
   <div class="error-msg" id="settings-error" style="display:none;"></div>
   <button class="primary" id="settings-save-btn">Save</button>
+  <div id="admin-email-box" style="display:none; margin-top:18px; padding-top:14px; border-top:1px solid var(--line);">
+    <div class="ql-title" style="font-size:1rem;">Email farmers (admin)</div>
+    <div id="admin-email-status" style="font-size:.85rem; margin-bottom:8px;"></div>
+    <label>Send to</label>
+    <select id="bc-district"><option value="">All districts</option></select>
+    <label>Subject</label>
+    <input type="text" id="bc-subject" maxlength="120">
+    <label>Message</label>
+    <textarea id="bc-message" rows="5" maxlength="5000" style="width:100%; box-sizing:border-box; font:inherit; padding:10px; border:1px solid var(--line); border-radius:var(--radius); background:#fff;"></textarea>
+    <div class="error-msg" id="bc-error" style="display:none;"></div>
+    <button class="primary" id="bc-send-btn">Send to farmers</button>
+    <button class="link-btn" id="bc-test-btn" style="margin-top:8px;">Send myself a test email</button>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -731,6 +747,7 @@ document.getElementById('register-submit').addEventListener('click', async () =>
       password: document.getElementById('reg-password').value,
       role: document.getElementById('reg-role').value,
       farm_location: document.getElementById('reg-farm-location').value.trim() || undefined,
+      email: document.getElementById('reg-email').value.trim() || undefined,
     };
     const data = await api('/auth/register', { method: 'POST', body });
     if (data.token) {
@@ -1579,7 +1596,10 @@ document.getElementById('settings-btn').addEventListener('click', async () => {
     const data = await api('/users/me');
     document.getElementById('settings-email').value = data.user.email || '';
     document.getElementById('settings-district').value = data.user.district || '';
+    document.getElementById('settings-email-on').checked = !data.user.email_opt_out;
+    if (currentUser && data.user.role) currentUser.role = data.user.role;
   } catch (err) { /* fields just start blank */ }
+  loadAdminEmailBox();
   document.getElementById('settings-error').style.display = 'none';
   document.getElementById('settings-sheet').classList.add('open');
   document.getElementById('sheet-overlay').classList.add('open');
@@ -1591,7 +1611,8 @@ document.getElementById('settings-save-btn').addEventListener('click', async () 
     await api('/users/me', {
       method: 'PATCH',
       body: {
-        email: document.getElementById('settings-email').value.trim() || undefined,
+        email: document.getElementById('settings-email').value.trim(),
+        email_opt_out: !document.getElementById('settings-email-on').checked,
         district: document.getElementById('settings-district').value || undefined,
       },
     });
@@ -1601,6 +1622,46 @@ document.getElementById('settings-save-btn').addEventListener('click', async () 
     errEl.textContent = err.message;
     errEl.style.display = 'block';
   }
+});
+
+// ---- ADMIN: EMAIL FARMERS ----
+async function loadAdminEmailBox() {
+  const box = document.getElementById('admin-email-box');
+  if (!currentUser || currentUser.role !== 'admin') { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  const sel = document.getElementById('bc-district');
+  if (sel.options.length === 1) {
+    Array.from(document.getElementById('settings-district').options).slice(1).forEach((o) => sel.add(new Option(o.textContent, o.textContent)));
+  }
+  const st = document.getElementById('admin-email-status');
+  try {
+    const d = await api('/admin/email-status');
+    st.innerHTML = d.configured
+      ? esc(d.audience.with_email + ' of ' + d.audience.recipients + ' farmers have an email address.') + (d.sandbox ? ' <b>Test mode: mail only reaches the Resend account owner until a domain is verified.</b>' : '')
+      : '<b>Email is not set up yet</b> (no Resend key on the server).';
+  } catch (err) { st.textContent = ''; }
+}
+document.getElementById('bc-send-btn').addEventListener('click', async () => {
+  const errEl = document.getElementById('bc-error');
+  errEl.style.display = 'none';
+  const subject = document.getElementById('bc-subject').value.trim();
+  const message = document.getElementById('bc-message').value.trim();
+  const district = document.getElementById('bc-district').value;
+  if (!confirm('Send this to ' + (district ? 'farmers in ' + district : 'ALL farmers') + '?')) return;
+  try {
+    const r = await api('/admin/broadcast', { method: 'POST', body: { subject, message, district: district || undefined } });
+    showToast('Sending to ' + r.recipients + ' farmers (' + r.with_email + ' by email)');
+    document.getElementById('bc-subject').value = '';
+    document.getElementById('bc-message').value = '';
+  } catch (err) { errEl.textContent = err.message; errEl.style.display = 'block'; }
+});
+document.getElementById('bc-test-btn').addEventListener('click', async () => {
+  const errEl = document.getElementById('bc-error');
+  errEl.style.display = 'none';
+  try {
+    const r = await api('/admin/test-email', { method: 'POST', body: {} });
+    showToast('Test email sent to ' + r.to);
+  } catch (err) { errEl.textContent = err.message; errEl.style.display = 'block'; }
 });
 
 // ---- PUSH SUBSCRIPTION ----

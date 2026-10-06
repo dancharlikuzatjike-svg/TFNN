@@ -279,3 +279,20 @@ ALTER TABLE marketplace_listing ADD COLUMN IF NOT EXISTS client_id UUID;
 -- vets already in the database) keeps working without being locked out.
 -- New supplier/vet signups explicitly get approved=false at insert time.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS approved BOOLEAN NOT NULL DEFAULT true;CREATE UNIQUE INDEX IF NOT EXISTS idx_listing_client_id ON marketplace_listing(client_id);
+
+-- ---------------------------------------------------------------------------
+-- Email: farmer opt-out + a delivery log (diagnosing failures, once-a-day digests)
+-- ---------------------------------------------------------------------------
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_opt_out BOOLEAN NOT NULL DEFAULT false;
+
+CREATE TABLE IF NOT EXISTS email_log (
+    log_id      SERIAL PRIMARY KEY,
+    user_id     INT REFERENCES users(user_id) ON DELETE SET NULL,
+    kind        VARCHAR(30),
+    to_address  VARCHAR(150),
+    subject     VARCHAR(200),
+    status      VARCHAR(10) NOT NULL,
+    error       TEXT,
+    created_at  TIMESTAMP DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_email_log_user_kind ON email_log(user_id, kind, created_at);

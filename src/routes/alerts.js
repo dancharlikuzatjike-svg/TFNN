@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { notifyMany, farmerIds, inBackground } = require('../utils/notify');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -42,7 +43,19 @@ router.post('/', requireRole('vet', 'admin'), async (req, res, next) => {
        VALUES ($1, $2, $3, COALESCE($4, 'Advisory'), $5, $6) RETURNING *`,
       [district, title, description || null, severity || null, expires_at || null, req.auth.user_id]
     );
-    res.status(201).json({ alert: result.rows[0] });
+    const alert = result.rows[0];
+
+    // Tell every farmer in that district (in-app + push + email), in the background
+    inBackground('ALERT NOTIFY', async () => {
+      const ids = await farmerIds({ district: alert.district });
+      await notifyMany(ids, {
+        title: `${alert.severity} alert - ${alert.district}: ${alert.title}`,
+        body: alert.description || alert.title,
+        ref_type: 'district_alert', ref_id: alert.alert_id, kind: 'district_alert',
+      });
+    });
+
+    res.status(201).json({ alert });
   } catch (err) {
     next(err);
   }

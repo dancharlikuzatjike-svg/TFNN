@@ -27,7 +27,9 @@ Route files that must be both created/replaced AND mounted in `index.js`:
 - [ ] `users.js`, `market.js`, `alerts.js`, `notifications.js`
 
 Env vars that must be set in Render:
-- [ ] `RESEND_API_KEY`
+- [ ] `RESEND_API_KEY` (a Resend "sending access" key)
+- [ ] `RESEND_FROM_ADDRESS` e.g. `TFNN <hello@yourdomain>` once your domain is verified in Resend (until then Resend only delivers to the account owner)
+- [ ] `APP_URL` (optional, defaults to the Render URL) and `CRON_SECRET` (optional; enables `POST /api/v1/jobs/task-reminders` with header `x-cron-secret` for daily task reminders)
 - [ ] `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`
 
 Frontend files (GitHub Pages, same folder as `app.html`):

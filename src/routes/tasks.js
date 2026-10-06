@@ -188,3 +188,4 @@ router.delete('/:id', async (req, res, next) => {
 });
 
 module.exports = router;
+module.exports.generateAutoTasks = generateAutoTasks;

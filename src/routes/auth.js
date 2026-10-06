@@ -3,6 +3,9 @@ const bcrypt = require('bcryptjs');
 const db = require('../db');
 const { signAccessToken, signRefreshToken, verifyRefreshToken } = require('../utils/jwt');
 const { requireAuth } = require('../middleware/auth');
+const { sendWelcome, inBackground } = require('../utils/notify');
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const router = express.Router();
 
@@ -14,6 +17,7 @@ const PUBLIC_ROLES = ['farmer', 'supplier', 'vet'];
 router.post('/register', async (req, res, next) => {
   try {
     const { name, phone, password, role, farm_location } = req.body;
+    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
 
     if (!name || !phone || !password || !role) {
       return res.status(400).json({ error: 'name, phone, password and role are required' });
@@ -26,6 +30,9 @@ router.post('/register', async (req, res, next) => {
     if (password.length < 8) {
       return res.status(400).json({ error: 'password must be at least 8 characters' });
     }
+    if (email && (email.length > 150 || !EMAIL_RE.test(email))) {
+      return res.status(400).json({ error: 'email does not look valid' });
+    }
 
     const password_hash = await bcrypt.hash(password, 10);
     // Farmers are usable right away. Supplier/vet claims need a human to check
@@ -33,13 +40,16 @@ router.post('/register', async (req, res, next) => {
     const approved = role === 'farmer';
 
     const result = await db.query(
-      `INSERT INTO users (name, phone, password_hash, role, farm_location, approved)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING user_id, name, phone, role, farm_location, approved, created_at`,
-      [name, phone, password_hash, role, farm_location || null, approved]
+      `INSERT INTO users (name, phone, password_hash, role, farm_location, approved, email)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING user_id, name, phone, email, role, farm_location, approved, created_at`,
+      [name, phone, password_hash, role, farm_location || null, approved, email || null]
     );
 
     const user = result.rows[0];
+
+    // Welcome / pending-approval email - in the background so sign-up stays fast
+    inBackground('WELCOME EMAIL', () => sendWelcome(user));
 
     if (!approved) {
       return res.status(201).json({

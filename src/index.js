@@ -19,6 +19,7 @@ const mediaRoutes = require('./routes/media');
 const statementRoutes = require('./routes/statement');
 const marketplaceRoutes = require('./routes/marketplace');
 const notificationRoutes = require('./routes/notifications');
+const jobsRoutes = require('./routes/jobs');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -39,6 +40,8 @@ const sendFrontend = (file) => (req, res, next) => {
 FRONTEND_FILES.forEach((f) => app.get('/' + f, sendFrontend(f)));
 app.get('/', sendFrontend('app.html'));
 
+// Jobs use their own secret, so mount before the routers that apply login to everything under /api/v1
+app.use('/api/v1/jobs', jobsRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/animals', animalRoutes);
 app.use('/api/v1/events', eventRoutes);
