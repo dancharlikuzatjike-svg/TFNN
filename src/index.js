@@ -28,6 +28,17 @@ app.use(express.json({ limit: '6mb' })); // base64 photo/voice uploads need more
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
+// ---- Frontend (PWA) served from this same service ----
+// Only this fixed allow-list is served, so nothing else in the repo (src/, .env, ...) can leak.
+const path = require('path');
+const FRONTEND_FILES = ['app.html', 'index.html', 'manifest.json', 'sw.js', 'icon-192.png', 'icon-512.png'];
+const sendFrontend = (file) => (req, res, next) => {
+  res.set('Cache-Control', 'no-cache'); // always revalidate so fixes reach users immediately
+  res.sendFile(path.join(__dirname, '..', file), (err) => { if (err) next(); });
+};
+FRONTEND_FILES.forEach((f) => app.get('/' + f, sendFrontend(f)));
+app.get('/', sendFrontend('app.html'));
+
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/animals', animalRoutes);
 app.use('/api/v1/events', eventRoutes);
