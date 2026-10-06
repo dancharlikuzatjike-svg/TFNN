@@ -8,7 +8,7 @@
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="theme-color" content="#0d2c1a">
-<title>TFNN — Farmers Network Namibia</title>
+<title>TFNN — The Future of Namibian Farming</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700&family=Work+Sans:wght@400;500;600;700&display=swap');
 
@@ -89,6 +89,30 @@ button.primary{
 .fab{ position:fixed; left:50%; bottom:78px; transform:translateX(88px); width:56px; height:56px; border-radius:50%; background:var(--ink); border:none; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(38,32,25,0.25); z-index:9; cursor:pointer; }
 .fab svg{ width:26px; height:26px; stroke:var(--paper); }
 
+.seg{ display:flex; gap:8px; margin-bottom:14px; }
+.seg button{ flex:1; border:1px solid var(--line); border-radius:20px; padding:7px; background:none; font:inherit; font-size:0.85rem; cursor:pointer; color:var(--ink-soft); }
+.seg button.on{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+.season-banner{ border-radius:var(--radius); padding:14px 16px; margin-bottom:14px; color:#EFEAD9; background:#0d2c1a; }
+.season-banner b{ display:block; font-size:1.05rem; margin-bottom:4px; }
+.season-banner span{ font-size:0.82rem; opacity:.85; }
+.cal-note{ font-size:0.78rem; color:var(--ink-soft); margin:0 0 12px; }
+details.month{ border:1px solid var(--line); border-radius:var(--radius); background:var(--paper-raised); margin-bottom:8px; }
+details.month summary{ padding:12px 14px; cursor:pointer; font-weight:600; display:flex; justify-content:space-between; list-style:none; }
+details.month summary small{ font-weight:400; color:var(--ink-soft); }
+details.month .mbody{ padding:0 14px 8px; }
+.todo{ display:flex; gap:10px; align-items:flex-start; padding:9px 0; border-top:1px solid var(--line); }
+.todo .tx{ flex:1; font-size:0.88rem; }
+.todo .tx em{ display:block; font-style:normal; color:var(--ink-soft); font-size:0.78rem; margin-top:2px; }
+.todo button{ flex:none; border:1px solid var(--line); background:none; border-radius:14px; padding:4px 10px; font-size:0.74rem; cursor:pointer; }
+.todo button:disabled{ opacity:.5; }
+.card{ border:1px solid var(--line); border-radius:var(--radius); background:var(--paper-raised); padding:14px; margin-bottom:12px; }
+.card h3{ margin:0 0 6px; font-size:1rem; }
+.chips{ display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
+.chip{ font-size:0.72rem; border-radius:12px; padding:3px 9px; background:var(--line); color:var(--ink); }
+.chip.ok{ background:#d6e8cf; } .chip.warn{ background:#f3e2b3; } .chip.bad{ background:#f1c4bd; }
+.alert-line{ font-size:0.82rem; padding:6px 0 6px 10px; border-left:3px solid var(--line); margin:4px 0; }
+.alert-line.bad{ border-color:#b3392b; } .alert-line.warn{ border-color:#b8892b; }
+.card .actions{ display:flex; gap:8px; margin-top:10px; }
 .tabbar{ position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:430px; display:flex; background:var(--paper-raised); border-top:1px solid var(--line); z-index:10; }
 .tabbar button{ flex:1; background:none; border:none; padding:9px 0 7px; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:0.66rem; color:var(--ink-soft); cursor:pointer; }
 .tabbar button svg{ width:18px; height:18px; stroke:var(--ink-soft); }
@@ -137,7 +161,7 @@ button.primary{
 </style>
 <div id="tfnn-splash" aria-hidden="true">
   <img src="emblem.png" alt="TFNN" width="132" height="132" style="border-radius:50%">
-  <div class="name">The Farmers Network Namibia</div>
+  <div class="name">The Future of Namibian Farming</div>
   <div class="dots"><i></i><i></i><i></i></div>
   <div class="wake" id="tfnn-wake">Waking up the server — the first open can take up to a minute…</div>
 </div>
@@ -158,7 +182,7 @@ button.primary{
 <div id="screen-auth">
   <img src="emblem.png" alt="" width="96" height="96" style="display:block; margin:0 0 12px; border-radius:50%;">
   <h1>TFNN</h1>
-  <p class="tag">The Farmers Network Namibia</p>
+  <p class="tag">The Future of Namibian Farming</p>
 
   <div id="login-form">
     <label>Phone</label>
@@ -235,6 +259,32 @@ button.primary{
       <div class="empty-note" id="tasks-empty" style="display:none;">Nothing due right now.</div>
     </div>
 
+    <div class="panel" id="panel-plan">
+      <div class="seg">
+        <button class="on" id="plan-tab-cal">📅 Season calendar</button>
+        <button id="plan-tab-bulls">🐂 Bull care</button>
+      </div>
+      <div id="plan-cal">
+        <div class="season-banner" id="season-banner"></div>
+        <p class="cal-note">A general guide for Namibia. Rain and frost differ between the north and south, so adjust the dates for your farm and confirm vaccines and treatments with your vet or state vet. Tap <strong>+ Task</strong> to put a job in your Tasks list.</p>
+        <div id="cal-months"></div>
+      </div>
+      <div id="plan-bulls" style="display:none;">
+        <div class="card" id="bull-herd-card"></div>
+        <div id="bull-list"></div>
+        <div class="empty-note" id="bull-empty" style="display:none;">No bulls yet. Tap <strong>+ Add animal</strong> on the Herd tab, choose species <strong>Cattle</strong> and class <strong>Bull</strong>.</div>
+        <details class="month" style="margin-top:6px;"><summary>Bull care checklist <small>tap to open</small></summary>
+          <div class="mbody" style="font-size:0.86rem; line-height:1.5;">
+            <p><strong>Before the breeding season (60 to 30 days):</strong> breeding soundness exam by your vet (checks semen, testicles, sheath, feet and legs). Vaccinate and deworm. Check feet and body condition. Aim for a score of 6 to 7 out of 9.</p>
+            <p><strong>Cows per bull:</strong> about 25 for a mature bull, about 15 for a bull under 2 years. Use more bulls on rough, large camps.</p>
+            <p><strong>During breeding:</strong> watch every bull weekly. Look for lameness, injuries, and bulls that are not working. Keep water and licks good. Swap out any bull that goes lame.</p>
+            <p><strong>After breeding (about 90 days):</strong> take him out of the herd, record it, and rest him for about 2 months. Feed him back up to condition.</p>
+            <p><strong>New bulls:</strong> keep them apart for 30 days and have your vet check them for venereal diseases (trichomonosis, vibriosis) and brucellosis before they join your cows.</p>
+            <p><strong>Keep bulls apart</strong> from cows outside the season, and from each other if they fight.</p>
+          </div></details>
+      </div>
+    </div>
+
     <div class="panel" id="panel-sales">
       <div class="section-title">Sales <span class="count" id="sales-count"></span></div>
       <button class="primary" id="add-sale-btn" style="margin-bottom:14px;">+ Record a sale</button>
@@ -285,6 +335,10 @@ button.primary{
     <button data-panel="tasks">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5"/></svg>
       Tasks
+    </button>
+    <button data-panel="plan">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+      Plan
     </button>
     <button data-panel="sales">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M6 7v13h12V7"/></svg>
@@ -505,6 +559,31 @@ button.primary{
     <button class="primary" id="bc-send-btn">Send to farmers</button>
     <button class="link-btn" id="bc-test-btn" style="margin-top:8px;">Send myself a test email</button>
   </div>
+</div>
+
+<div class="sheet" id="bull-sheet">
+  <div class="sheet-handle"></div>
+  <div class="ql-title" id="bull-sheet-title">Log bull care</div>
+  <label for="bl-type">What happened?</label>
+  <select id="bl-type"></select>
+  <label for="bl-date">Date</label>
+  <input type="date" id="bl-date">
+  <div id="bl-result-wrap" style="display:none;">
+    <label for="bl-result">Result</label>
+    <select id="bl-result"><option>Pass</option><option>Deferred</option><option>Fail</option></select>
+  </div>
+  <div id="bl-score-wrap" style="display:none;">
+    <label for="bl-score">Body condition score (1 thin, 9 very fat)</label>
+    <select id="bl-score"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option selected>6</option><option>7</option><option>8</option><option>9</option></select>
+  </div>
+  <div id="bl-next-wrap" style="display:none;">
+    <label for="bl-next">Next due (we will remind you)</label>
+    <input type="date" id="bl-next">
+  </div>
+  <label for="bl-notes">Notes (optional)</label>
+  <input type="text" id="bl-notes" maxlength="300">
+  <div class="error-msg" id="bl-error" style="display:none;"></div>
+  <button class="primary" id="bl-save">Save</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1628,6 +1707,184 @@ document.getElementById('settings-save-btn').addEventListener('click', async () 
     errEl.textContent = err.message;
     errEl.style.display = 'block';
   }
+});
+
+// ---- PLAN: SEASON CALENDAR + BULL CARE ----
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const SEASON_OF = ['Rainy season','Rainy season','Rainy season','Autumn — rains ending','Autumn — start of winter','Cold dry winter','Cold dry winter','Late winter — dry','Hot dry build-up','Hot dry build-up','First rains','Rainy season'];
+const SEASON_NOTE = {
+  'Rainy season':'Green grass, flies, ticks and worms. Peak time for breeding and for tick-borne disease.',
+  'Autumn — rains ending':'Grass is at its best. Time to wean, pregnancy-test and plan winter feed.',
+  'Cold dry winter':'Grass loses its protein. Supplement feed, protect young stock from cold and guard against veld fires.',
+  'Late winter — dry':'Feed is at its shortest. Get bulls fit and book the vet before breeding.',
+  'Hot dry build-up':'Hot, dry and tough on stock. Calving begins and pre-rain vaccinations are due.',
+  'First rains':'Fresh green flush can cause bloat. Join the bulls when the rains are established.'
+};
+const CAL = [
+  [ // Jan
+    ['Check for ticks and tick-borne disease','Redwater and gallsickness risk is high after rain. Dip or spray as your vet advises.'],
+    ['Keep the phosphate or summer lick out','Needed all through the green season.'],
+    ['Check fences and water points after storms','']
+  ],
+  [ // Feb
+    ['Check every bull weekly','Look at feet, legs, condition and whether he is working.'],
+    ['Heifer calves: brucellosis vaccination','Heifers 4 to 8 months, where your state vet requires it.'],
+    ['Deworm young stock','Worms peak in wet weather.']
+  ],
+  [ // Mar
+    ['Take bulls out about 90 days after joining','Record "Removed from Herd" in the Bull care tab.'],
+    ['Weigh and record calves','']
+  ],
+  [ // Apr
+    ['Deworm and dip after the rains','Ask your vet which products suit your area.'],
+    ['Book pregnancy testing','Do it about 60 to 90 days after the bulls came out.']
+  ],
+  [ // May
+    ['Pregnancy-test cows and cull the empties','Empty cows eat winter feed for nothing.'],
+    ['Wean calves of 6 to 8 months','Wean the oldest or lightest cow first if she is thin.'],
+    ['Count your hay and winter feed','Plan what you will buy before prices rise.'],
+    ['Cut fire breaks','Do it before the grass dries out.']
+  ],
+  [ // Jun
+    ['Start winter protein lick','Dry grass is low in protein; stock lose condition without it.'],
+    ['Shelter lambs, kids and weak calves from cold nights','']
+  ],
+  [ // Jul
+    ['Score body condition of the whole herd','Feed thin animals first.'],
+    ['Check water troughs and pipes','Make sure animals can drink on cold mornings.']
+  ],
+  [ // Aug
+    ['Book the vet for bull breeding soundness exams','Do them 30 to 60 days before the breeding season.'],
+    ['Start feeding bulls up to condition 6 to 7','Fat is not the aim; fit is.'],
+    ['Watch for veld fires','']
+  ],
+  [ // Sep
+    ['Breeding soundness exam for every bull','Mark the result in the Bull care tab.'],
+    ['Pre-rain vaccinations: anthrax and botulism','Do these before the rains start; ask your vet which are needed in your area.'],
+    ['Watch heifers closely for calving','Heifers need the most help.']
+  ],
+  [ // Oct
+    ['Record new calves as "Born"','Tag them soon after birth.'],
+    ['Treat calf navels at birth','Dip or spray with iodine.'],
+    ['Finish bull vaccinations and deworming','Before they join the cows.']
+  ],
+  [ // Nov
+    ['Watch for bloat when the first green grass comes','Do not put hungry cattle on lush green lands.'],
+    ['Check bull condition and feet before joining','']
+  ],
+  [ // Dec
+    ['Join the bulls (about 1 bull to 25 cows)','Record "Joined Herd" in the Bull care tab. Use fewer cows for young bulls.'],
+    ['Start tick control for the wet season','']
+  ]
+];
+function renderCalendar() {
+  const m = new Date().getMonth();
+  const s = SEASON_OF[m];
+  document.getElementById('season-banner').innerHTML = '<b>' + esc(s) + ' · ' + esc(MONTHS[m]) + '</b><span>' + esc(SEASON_NOTE[s]) + '</span>';
+  document.getElementById('cal-months').innerHTML = CAL.map((items, i) => [items, i]).slice(m).concat(CAL.map((items, i) => [items, i]).slice(0, m)).map(([items, i]) => {
+    const rows = items.map((it, j) => '<div class="todo"><div class="tx">' + esc(it[0]) + (it[1] ? '<em>' + esc(it[1]) + '</em>' : '') + '</div><button data-m="' + i + '" data-j="' + j + '">+ Task</button></div>').join('');
+    return '<details class="month"' + (i === m ? ' open' : '') + '><summary>' + MONTHS[i] + ' <small>' + esc(SEASON_OF[i]) + '</small></summary><div class="mbody">' + rows + '</div></details>';
+  }).join('');
+}
+document.getElementById('cal-months').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-m]');
+  if (!btn || btn.disabled) return;
+  const mi = Number(btn.dataset.m);
+  const item = CAL[mi][Number(btn.dataset.j)];
+  const now = new Date();
+  let year = now.getFullYear();
+  if (mi < now.getMonth()) year += 1;                     // a month already past means next year
+  const due = new Date(Date.UTC(year, mi, mi === now.getMonth() ? Math.max(now.getDate(), 1) : 1)).toISOString().slice(0, 10);
+  btn.disabled = true;
+  try {
+    const r = await api('/tasks', { method: 'POST', body: { title: item[0].slice(0, 150), due_date: due, client_id: crypto.randomUUID() } });
+    btn.textContent = r && r.__queued ? 'Saved offline' : 'Added ✓';
+    loadTasks();
+  } catch (err) { btn.disabled = false; showToast(err.message, true); }
+});
+function showPlan(which) {
+  document.getElementById('plan-cal').style.display = which === 'cal' ? '' : 'none';
+  document.getElementById('plan-bulls').style.display = which === 'bulls' ? '' : 'none';
+  document.getElementById('plan-tab-cal').classList.toggle('on', which === 'cal');
+  document.getElementById('plan-tab-bulls').classList.toggle('on', which === 'bulls');
+  if (which === 'bulls') loadBulls();
+}
+document.getElementById('plan-tab-cal').addEventListener('click', () => showPlan('cal'));
+document.getElementById('plan-tab-bulls').addEventListener('click', () => showPlan('bulls'));
+document.querySelector('#tabbar [data-panel="plan"]').addEventListener('click', renderCalendar);
+
+const BULL_LOG_TYPES = ['Breeding Soundness Exam','Joined Herd','Removed from Herd','Body Condition Score','Hoof / Foot Care','Vaccinated','Dosed / Dewormed','Dipped / Tick Control','Sick / Treated'];
+const NEXT_DUE_DAYS = { 'Breeding Soundness Exam': 365, 'Vaccinated': 365, 'Dosed / Dewormed': 180, 'Dipped / Tick Control': 60 };
+let bullLog = null;
+function addDays(dateStr, n) { const d = new Date(dateStr + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+function updateBullForm() {
+  const t = document.getElementById('bl-type').value;
+  document.getElementById('bl-result-wrap').style.display = t === 'Breeding Soundness Exam' ? '' : 'none';
+  document.getElementById('bl-score-wrap').style.display = t === 'Body Condition Score' ? '' : 'none';
+  const nd = NEXT_DUE_DAYS[t];
+  document.getElementById('bl-next-wrap').style.display = nd ? '' : 'none';
+  if (nd) document.getElementById('bl-next').value = addDays(document.getElementById('bl-date').value || new Date().toISOString().slice(0, 10), nd);
+}
+document.getElementById('bl-type').addEventListener('change', updateBullForm);
+document.getElementById('bl-date').addEventListener('change', updateBullForm);
+function openBullLog(bull, type) {
+  bullLog = bull;
+  document.getElementById('bull-sheet-title').textContent = 'Bull ' + bull.tag_number;
+  document.getElementById('bl-type').innerHTML = BULL_LOG_TYPES.map(t => '<option>' + esc(t) + '</option>').join('');
+  if (type) document.getElementById('bl-type').value = type;
+  document.getElementById('bl-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('bl-notes').value = '';
+  document.getElementById('bl-error').style.display = 'none';
+  updateBullForm();
+  document.getElementById('bull-sheet').classList.add('open');
+  document.getElementById('sheet-overlay').classList.add('open');
+}
+document.getElementById('bl-save').addEventListener('click', async () => {
+  const errEl = document.getElementById('bl-error');
+  errEl.style.display = 'none';
+  const type = document.getElementById('bl-type').value;
+  const metadata = {};
+  if (type === 'Breeding Soundness Exam') metadata.result = document.getElementById('bl-result').value;
+  if (type === 'Body Condition Score') metadata.score = Number(document.getElementById('bl-score').value);
+  if (NEXT_DUE_DAYS[type] && document.getElementById('bl-next').value && !(metadata.result === 'Fail')) metadata.next_due_date = document.getElementById('bl-next').value;
+  try {
+    const r = await api('/events', { method: 'POST', body: {
+      animal_id: bullLog.animal_id, event_type: type, event_date: document.getElementById('bl-date').value,
+      notes: document.getElementById('bl-notes').value.trim() || undefined,
+      metadata: Object.keys(metadata).length ? metadata : undefined, client_id: crypto.randomUUID() } });
+    closeAllSheets();
+    showToast(r && r.__queued ? 'Saved offline — will sync when back online' : 'Saved: ' + type + ' for ' + bullLog.tag_number);
+    loadBulls(); loadTasks();
+  } catch (err) { errEl.textContent = err.message; errEl.style.display = 'block'; }
+});
+const BSE_LABEL = { none: 'No exam on record', ok: 'Exam OK', due_soon: 'Exam due soon', overdue: 'Exam overdue', failed: 'Exam FAILED', deferred: 'Exam deferred' };
+async function loadBulls() {
+  try {
+    const data = await api('/bulls');
+    if (data.__offline) return;
+    document.getElementById('bull-herd-card').innerHTML = '<h3>Bulls and cows</h3><div style="font-size:0.88rem;">' + esc(data.herd.message) + '</div>' +
+      '<div class="chips"><span class="chip">' + data.herd.bulls + (data.herd.bulls === 1 ? ' bull' : ' bulls') + '</span><span class="chip">' + data.herd.breeding_females + ' cows and heifers</span>' +
+      (data.herd.cows_per_bull != null ? '<span class="chip">' + esc(data.herd.cows_per_bull) + ' cows per bull</span>' : '') + '</div>';
+    document.getElementById('bull-empty').style.display = data.bulls.length ? 'none' : 'block';
+    document.getElementById('bull-list').innerHTML = data.bulls.map(b => {
+      const where = b.with_herd ? 'With cows ' + b.days_with_herd + ' days' : (b.days_resting != null ? 'Out of herd ' + b.days_resting + ' days' : 'Not joined');
+      return '<div class="card"><h3>' + esc(b.tag_number) + ' <span style="font-weight:400; font-size:0.8rem; color:var(--ink-soft);">' + esc(b.breed || '') + (b.age_months != null ? ' · ' + Math.floor(b.age_months / 12) + 'y ' + (b.age_months % 12) + 'm' : '') + '</span></h3>' +
+        '<div class="chips"><span class="chip ' + (b.bse.status === 'ok' ? 'ok' : (b.bse.status === 'overdue' || b.bse.status === 'failed') ? 'bad' : 'warn') + '">' + esc(BSE_LABEL[b.bse.status]) + '</span>' +
+        '<span class="chip ' + (b.with_herd ? 'ok' : '') + '">' + esc(where) + '</span>' +
+        (b.body_condition != null ? '<span class="chip ' + (b.body_condition < 5 || b.body_condition > 7 ? 'warn' : 'ok') + '">Condition ' + esc(b.body_condition) + '/9</span>' : '') + '</div>' +
+        b.alerts.map(a => '<div class="alert-line ' + esc(a.level) + '">' + esc(a.text) + '</div>').join('') +
+        '<div class="actions"><button class="primary" style="padding:9px; flex:1;" data-bull="' + b.animal_id + '">Log care</button>' +
+        (b.with_herd ? '<button class="link-btn" style="border:1px solid var(--line); border-radius:var(--radius); padding:9px; flex:1; text-decoration:none;" data-bull="' + b.animal_id + '" data-quick="Removed from Herd">Take out of herd</button>'
+                     : '<button class="link-btn" style="border:1px solid var(--line); border-radius:var(--radius); padding:9px; flex:1; text-decoration:none;" data-bull="' + b.animal_id + '" data-quick="Joined Herd">Join with cows</button>') + '</div></div>';
+    }).join('');
+    window.__bulls = data.bulls;
+  } catch (err) { showToast(err.message, true); }
+}
+document.getElementById('bull-list').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-bull]');
+  if (!btn) return;
+  const bull = (window.__bulls || []).find(b => String(b.animal_id) === btn.dataset.bull);
+  if (bull) openBullLog(bull, btn.dataset.quick);
 });
 
 // ---- ADMIN: EMAIL FARMERS ----

@@ -32,14 +32,14 @@ function composeEmail({ heading, paragraphs = [], button }) {
   const html = `<!doctype html><html><body style="margin:0;padding:0;background:#EFEAD9;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EFEAD9;padding:24px 12px;"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#F8F5EA;border:1px solid #CBC3AA;border-radius:10px;overflow:hidden;font-family:Helvetica,Arial,sans-serif;">
-<tr><td style="background:#0d2c1a;padding:14px 24px;color:#EFEAD9;font-size:18px;font-weight:700;letter-spacing:.04em;"><img src="${appUrl()}/emblem.png" width="44" height="44" alt="" style="vertical-align:middle;border-radius:50%;margin-right:10px;"> TFNN <span style="font-weight:400;font-size:12px;opacity:.8;">The Farmers Network Namibia</span></td></tr>
+<tr><td style="background:#0d2c1a;padding:14px 24px;color:#EFEAD9;font-size:18px;font-weight:700;letter-spacing:.04em;"><img src="${appUrl()}/emblem.png" width="44" height="44" alt="" style="vertical-align:middle;border-radius:50%;margin-right:10px;"> TFNN <span style="font-weight:400;font-size:12px;opacity:.8;">The Future of Namibian Farming</span></td></tr>
 <tr><td style="padding:24px;">
 <h1 style="margin:0 0 14px;font-size:19px;color:#262019;">${esc(heading)}</h1>${body}${btn}
 </td></tr>
 <tr><td style="padding:14px 24px;border-top:1px solid #CBC3AA;font-size:12px;color:#6B6152;">You receive this because you have a TFNN account. To stop emails, open the app → ⚙️ Settings → untick “Email me notifications”.</td></tr>
 </table></td></tr></table></body></html>`;
   const text = [heading, '', ...paragraphs.filter(Boolean), button ? `${button.text}: ${button.url}` : '', '',
-    '— TFNN, The Farmers Network Namibia',
+    '— TFNN, The Future of Namibian Farming',
     'To stop emails: open the app > Settings > untick "Email me notifications".'].filter((l) => l !== undefined).join('\n');
   return { html, text };
 }

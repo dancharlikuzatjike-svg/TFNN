@@ -5,7 +5,7 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 const router = express.Router();
 router.use(requireAuth);
 
-const EVENT_TYPES = ['Born', 'Vaccinated', 'Sick / Treated', 'Fed', 'Sold', 'Died', 'Bought', 'Moved Farm', 'Ownership Transferred', 'Other'];
+const EVENT_TYPES = ['Born', 'Vaccinated', 'Sick / Treated', 'Fed', 'Sold', 'Died', 'Bought', 'Moved Farm', 'Ownership Transferred', 'Breeding Soundness Exam', 'Joined Herd', 'Removed from Herd', 'Body Condition Score', 'Hoof / Foot Care', 'Dosed / Dewormed', 'Dipped / Tick Control', 'Other'];
 
 // GET /api/v1/events?tag=&type=&from=&to=&include_deleted=
 router.get('/', async (req, res, next) => {
