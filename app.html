@@ -125,6 +125,8 @@ button.primary{
 #tfnn-splash.hide{opacity:0;pointer-events:none}
 #tfnn-splash .mark{width:112px;height:112px;border-radius:50%;border:3px solid #B8892B;display:flex;align-items:center;justify-content:center;font-family:'Roboto Slab',serif;font-weight:700;font-size:2rem;letter-spacing:.04em;color:#EFEAD9}
 #tfnn-splash .name{font-family:'Roboto Slab',serif;color:#EFEAD9;font-size:1rem;opacity:.85}
+#tfnn-splash .wake{font:0.8rem 'Work Sans',sans-serif;color:#EFEAD9;opacity:0;max-width:260px;text-align:center;transition:opacity .4s}
+#tfnn-splash .wake.show{opacity:.75}
 #tfnn-splash .dots{display:flex;gap:8px}
 #tfnn-splash .dots i{width:8px;height:8px;border-radius:50%;background:#B8892B;opacity:.3;animation:tfnnDot 1s infinite ease-in-out}
 #tfnn-splash .dots i:nth-child(2){animation-delay:.15s}
@@ -135,14 +137,18 @@ button.primary{
   <div class="mark">TFNN</div>
   <div class="name">The Farmers Network Namibia</div>
   <div class="dots"><i></i><i></i><i></i></div>
+  <div class="wake" id="tfnn-wake">Waking up the server — the first open can take up to a minute…</div>
 </div>
 <script>
 (function(){
-  var s=document.getElementById('tfnn-splash'), t0=Date.now();
-  function hide(){ if(!s) return; s.classList.add('hide'); setTimeout(function(){ if(s&&s.parentNode) s.parentNode.removeChild(s); },450); }
-  function go(){ var wait=Math.max(0,1200-(Date.now()-t0)); setTimeout(hide,wait); }
-  if(document.readyState==='complete') go(); else window.addEventListener('load',go);
-  setTimeout(hide,5000); // never let the splash trap the user
+  var s=document.getElementById('tfnn-splash'), wake=document.getElementById('tfnn-wake');
+  var t0=Date.now(), held=true, loaded=false, hidden=false;
+  function hide(){ if(hidden||!s) return; hidden=true; s.classList.add('hide'); setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); },450); }
+  function check(){ if(held||!loaded) return; setTimeout(hide, Math.max(0,1200-(Date.now()-t0))); }
+  window.releaseSplash=function(){ held=false; check(); };           // called by the app once it knows who is signed in
+  if(document.readyState==='complete'){ loaded=true; } else { window.addEventListener('load',function(){ loaded=true; check(); }); }
+  setTimeout(function(){ if(!hidden && wake) wake.classList.add('show'); },6000);   // slow server wake-up hint
+  setTimeout(function(){ held=false; loaded=true; check(); },90000);               // never trap the user behind the splash
 })();
 </script>
 
@@ -207,9 +213,12 @@ button.primary{
   <div class="content">
     <div class="panel active" id="panel-herd">
       <div class="section-title">Herd <span class="count" id="herd-count"></span></div>
-      <button class="link-btn" id="import-herd-btn" style="border:1px dashed var(--line); border-radius:var(--radius); padding:8px; width:100%; text-align:center; text-decoration:none; margin-bottom:14px; display:block;">📄 Import from spreadsheet</button>
+      <div style="display:flex; gap:10px; margin-bottom:14px;">
+        <button class="primary" id="add-animal-btn" style="flex:1.3; padding:11px;">+ Add animal</button>
+        <button class="link-btn" id="import-herd-btn" style="flex:1; border:1px dashed var(--line); border-radius:var(--radius); padding:8px; text-align:center; text-decoration:none;">📄 Import</button>
+      </div>
       <div id="herd-list"></div>
-      <div class="empty-note" id="herd-empty" style="display:none;">No animals yet. Use Quick Log to add your first one via the API, or ask your developer to add a "new animal" form.</div>
+      <div class="empty-note" id="herd-empty" style="display:none;">No animals yet. Tap <strong>+ Add animal</strong> above to record your first one, or <strong>Import</strong> your whole herd from a spreadsheet.</div>
     </div>
 
     <div class="panel" id="panel-tasks">
@@ -303,6 +312,28 @@ button.primary{
   <div id="sheet-photo-wrap" style="margin-top:16px;"></div>
   <button class="link-btn" id="sheet-add-photo-btn" style="margin-top:10px; border:1px dashed var(--line); border-radius:var(--radius); padding:10px; width:100%; text-decoration:none;">📷 Add / update photo</button>
   <input type="file" id="sheet-photo-input" accept="image/*" capture="environment" style="display:none;">
+</div>
+
+<div class="sheet" id="add-animal-sheet">
+  <div class="sheet-handle"></div>
+  <div class="ql-title">Add an animal</div>
+  <label for="aa-tag">Tag number *</label>
+  <input type="text" id="aa-tag" maxlength="30" placeholder="e.g. 0142" autocomplete="off" autocapitalize="characters">
+  <label for="aa-species">Species *</label>
+  <select id="aa-species">
+    <option value="Cattle">Cattle</option>
+    <option value="Sheep">Sheep</option>
+    <option value="Goat">Goat</option>
+  </select>
+  <label for="aa-breed">Breed</label>
+  <input type="text" id="aa-breed" maxlength="50" placeholder="e.g. Brahman, Dorper, Boer">
+  <label for="aa-class">Class</label>
+  <select id="aa-class"></select>
+  <label for="aa-dob">Date of birth</label>
+  <input type="date" id="aa-dob">
+  <div class="error-msg" id="aa-error" style="display:none;"></div>
+  <button class="primary" id="aa-submit">Save animal</button>
+  <p style="text-align:center; margin-top:12px;"><button class="link-btn" id="aa-submit-another">Save and add another</button></p>
 </div>
 
 <div class="sheet" id="quicklog-sheet">
@@ -460,8 +491,45 @@ button.primary{
 <script>
 const API_BASE = 'https://tfnn-1.onrender.com/api/v1';
 let token = null;
+let refreshToken = null;
 let currentUser = null;
 let animals = [];
+
+// ---- Session persistence: the long-lived refresh token + user live in localStorage ----
+const SESSION_KEY = 'tfnn_session_v1';
+function saveSession(){ try { localStorage.setItem(SESSION_KEY, JSON.stringify({ refresh_token: refreshToken, user: currentUser })); } catch (e) {} }
+function loadSession(){ try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch (e) { return null; } }
+function clearSession(){ try { localStorage.removeItem(SESSION_KEY); } catch (e) {} refreshToken = null; }
+
+// Exchanges the refresh token for a fresh 15-minute access token.
+// Returns 'ok' | 'invalid' (refresh token rejected - must log in again) | 'offline' (server unreachable).
+let refreshInFlight = null;
+function refreshAccessToken(){
+  if (!refreshToken) return Promise.resolve('invalid');
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 75000); // free-tier server can take ~1 min to wake up
+      try {
+        const res = await fetch(API_BASE + '/auth/refresh', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: refreshToken }), signal: ctrl.signal,
+        });
+        if (res.status === 401 || res.status === 400) return 'invalid';
+        if (!res.ok) return 'offline';
+        const data = await res.json();
+        token = data.token;
+        return 'ok';
+      } catch (e) {
+        return 'offline';
+      } finally {
+        clearTimeout(timer);
+        refreshInFlight = null;
+      }
+    })();
+  }
+  return refreshInFlight;
+}
 
 // ---- Offline outbox (IndexedDB) ----
 // Only writes (POST/PATCH/DELETE) that fail with a genuine network error (no
@@ -516,7 +584,9 @@ async function updateSyncBadge(){
   }
 }
 async function syncOutbox(){
-  if (!navigator.onLine || !token) return;
+  if (!navigator.onLine) return;
+  if (!token && refreshToken && currentUser) { if (await refreshAccessToken() !== 'ok') return; }
+  if (!token) return;
   const items = await getQueuedWrites().catch(() => []);
   for (const item of items) {
     try {
@@ -558,12 +628,20 @@ async function api(path, options = {}) {
     return { __offline: true }; // GET failure while offline - caller keeps showing existing data
   }
 
+  // Access token expired (they last 15 min)? Quietly get a new one and retry once.
+  if (res.status === 401 && token && !options._retried && path.indexOf('/auth/') !== 0) {
+    const r = await refreshAccessToken();
+    if (r === 'ok') return api(path, Object.assign({}, options, { _retried: true }));
+    if (r === 'invalid') { forceLogout('Your session expired — please log in again.'); throw new Error('Session expired'); }
+  }
+
   let data = {};
   try { data = await res.json(); } catch (e) {}
   if (!res.ok) throw new Error(data.error || ('Request failed (' + res.status + ')'));
   return data;
 }
 
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function money(n){ return 'N$' + Number(n || 0).toLocaleString(); }
 function speciesClass(s){ return (s || '').toLowerCase(); }
 function showToast(msg, isError){
@@ -633,7 +711,9 @@ document.getElementById('login-submit').addEventListener('click', async () => {
     const password = document.getElementById('login-password').value;
     const data = await api('/auth/login', { method: 'POST', body: { phone, password } });
     token = data.token;
+    refreshToken = data.refresh_token;
     currentUser = data.user;
+    saveSession();
     enterApp();
   } catch (err) {
     errEl.textContent = err.message;
@@ -655,7 +735,9 @@ document.getElementById('register-submit').addEventListener('click', async () =>
     const data = await api('/auth/register', { method: 'POST', body });
     if (data.token) {
       token = data.token;
+      refreshToken = data.refresh_token;
       currentUser = data.user;
+      saveSession();
       enterApp();
     } else {
       showToast(data.message || 'Account created — pending approval.');
@@ -667,11 +749,16 @@ document.getElementById('register-submit').addEventListener('click', async () =>
   }
 });
 
-document.getElementById('logout-btn').addEventListener('click', () => {
+function forceLogout(message){
   token = null; currentUser = null; animals = [];
+  clearSession();
+  closeAllSheets();
   document.getElementById('screen-app').style.display = 'none';
   document.getElementById('screen-auth').style.display = 'flex';
-});
+  document.getElementById('login-password').value = '';
+  if (message) showToast(message, true);
+}
+document.getElementById('logout-btn').addEventListener('click', () => forceLogout());
 
 async function enterApp(){
   document.getElementById('screen-auth').style.display = 'none';
@@ -682,6 +769,26 @@ async function enterApp(){
   await syncOutbox();
   await Promise.all([loadHerd(), loadTasks(), loadSales(), loadExpenses(), loadValuation(), loadMarketBrowse(), loadNotifications()]);
 }
+
+// ---- Boot: restore a saved session so a reload / reopening the app keeps you signed in ----
+(async function boot(){
+  const saved = loadSession();
+  if (!saved || !saved.refresh_token || !saved.user) { releaseSplash(); return; }
+  document.getElementById('screen-auth').style.display = 'none'; // don't flash the login form
+  refreshToken = saved.refresh_token;
+  currentUser = saved.user;
+  const r = await refreshAccessToken();
+  if (r === 'ok') {
+    try { const me = await api('/auth/me'); if (me && me.user) { currentUser = me.user; saveSession(); } } catch (e) {}
+    enterApp();
+  } else if (r === 'offline') {
+    enterApp(); // no connection: open with what's on the phone, sync when back online
+  } else {
+    clearSession(); currentUser = null;
+    document.getElementById('screen-auth').style.display = 'flex';
+  }
+  releaseSplash();
+})();
 
 // ---- Tab switching ----
 document.getElementById('tabbar').addEventListener('click', (e) => {
@@ -703,10 +810,10 @@ async function loadHerd(){
     document.getElementById('herd-empty').style.display = animals.length ? 'none' : 'block';
     document.getElementById('herd-list').innerHTML = animals.map(a => `
       <div class="row" data-id="${a.animal_id}">
-        <div class="tag-badge ${speciesClass(a.species)}">${a.tag_number}</div>
+        <div class="tag-badge ${speciesClass(a.species)}">${esc(a.tag_number)}</div>
         <div class="info">
-          <div class="name">${a.breed || ''} ${a.species}</div>
-          <div class="meta">${a.status}</div>
+          <div class="name">${esc(a.breed || '')} ${a.species}</div>
+          <div class="meta">${a.class ? esc(a.class) + ' · ' : ''}${a.status}</div>
         </div>
         <div class="right">
           ${a.status === 'Active'
@@ -741,9 +848,9 @@ async function openAnimalSheet(animalId){
     const events = data.events || [];
     timelineEl.innerHTML = events.length ? events.map(ev => `
       <div class="event">
-        <div class="etype">${ev.event_type}</div>
+        <div class="etype">${esc(ev.event_type)}</div>
         <div class="edate">${ev.event_date}</div>
-        ${ev.notes ? `<div style="font-size:0.85rem; margin-top:4px;">${ev.notes}</div>` : ''}
+        ${ev.notes ? `<div style="font-size:0.85rem; margin-top:4px;">${esc(ev.notes)}</div>` : ''}
       </div>
     `).join('') : '<p class="meta">No events logged yet.</p>';
   } catch (err) {
@@ -782,6 +889,81 @@ function closeAllSheets(){
 }
 document.getElementById('sheet-overlay').addEventListener('click', closeAllSheets);
 
+// ---- ADD ANIMAL ----
+const CLASS_OPTIONS = {
+  Cattle: ['Cow', 'Bull', 'Heifer', 'Steer', 'Calf'],
+  Sheep: ['Ewe', 'Ram', 'Wether', 'Lamb'],
+  Goat: ['Doe', 'Buck', 'Wether', 'Kid'],
+};
+function fillClassOptions(){
+  const sp = document.getElementById('aa-species').value;
+  document.getElementById('aa-class').innerHTML = '<option value="">Select…</option>' +
+    (CLASS_OPTIONS[sp] || []).map(c => `<option value="${c}">${c}</option>`).join('');
+}
+document.getElementById('aa-species').addEventListener('change', fillClassOptions);
+
+function openAddAnimal(){
+  closeAllSheets();
+  document.getElementById('aa-tag').value = '';
+  document.getElementById('aa-breed').value = '';
+  document.getElementById('aa-dob').value = '';
+  document.getElementById('aa-dob').max = new Date().toISOString().slice(0, 10);
+  document.getElementById('aa-error').style.display = 'none';
+  fillClassOptions();
+  document.getElementById('add-animal-sheet').classList.add('open');
+  document.getElementById('sheet-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('aa-tag').focus(), 350);
+}
+document.getElementById('add-animal-btn').addEventListener('click', openAddAnimal);
+
+async function saveAnimal(addAnother){
+  const errEl = document.getElementById('aa-error');
+  const fail = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
+  errEl.style.display = 'none';
+
+  const tag = document.getElementById('aa-tag').value.trim();
+  const species = document.getElementById('aa-species').value;
+  const breed = document.getElementById('aa-breed').value.trim();
+  const cls = document.getElementById('aa-class').value;
+  const dob = document.getElementById('aa-dob').value;
+
+  if (!tag) return fail('Please enter the tag number.');
+  if (dob && dob > new Date().toISOString().slice(0, 10)) return fail('Date of birth cannot be in the future.');
+  if (animals.some(a => String(a.tag_number).toLowerCase() === tag.toLowerCase())) {
+    return fail('Tag ' + tag + ' is already in your herd.');
+  }
+
+  const btns = [document.getElementById('aa-submit'), document.getElementById('aa-submit-another')];
+  btns.forEach(b => b.disabled = true);
+  try {
+    const body = { tag_number: tag, species, client_id: crypto.randomUUID() };
+    if (breed) body.breed = breed;
+    if (cls) body.class = cls;
+    if (dob) body.date_of_birth = dob;
+    const data = await api('/animals', { method: 'POST', body });
+
+    if (data.__queued) {
+      showToast('No connection — saved on this phone, will sync when online');
+    } else {
+      showToast('Added ' + tag);
+      await Promise.all([loadHerd(), loadValuation()]);
+    }
+    if (addAnother) {
+      document.getElementById('aa-tag').value = '';
+      document.getElementById('aa-tag').focus();
+    } else {
+      closeAllSheets();
+    }
+  } catch (err) {
+    fail(/already exists/i.test(err.message) ? 'Tag ' + tag + ' is already in your herd.' : err.message);
+  } finally {
+    btns.forEach(b => b.disabled = false);
+  }
+}
+document.getElementById('aa-submit').addEventListener('click', () => saveAnimal(false));
+document.getElementById('aa-submit-another').addEventListener('click', () => saveAnimal(true));
+document.getElementById('aa-tag').addEventListener('keydown', (e) => { if (e.key === 'Enter') saveAnimal(false); });
+
 // ---- QUICK LOG ----
 const EVENT_TYPES = ['Vaccinated', 'Fed', 'Sick / Treated', 'Sold', 'Moved Farm', 'Other'];
 let ql = { animal: null, type: null, photoFile: null, voiceFile: null };
@@ -806,8 +988,8 @@ document.getElementById('fab-quicklog').addEventListener('click', () => {
   const active = animals.filter(a => a.status === 'Active');
   document.getElementById('ql-animal-grid').innerHTML = active.map(a => `
     <div class="tile" data-id="${a.animal_id}">
-      <div class="tag-badge ${speciesClass(a.species)}">${a.tag_number}</div>
-      <span>${a.breed || ''}</span>
+      <div class="tag-badge ${speciesClass(a.species)}">${esc(a.tag_number)}</div>
+      <span>${esc(a.breed || '')}</span>
     </div>
   `).join('');
   document.querySelectorAll('#ql-animal-grid .tile').forEach(tile => {
@@ -896,7 +1078,7 @@ async function loadTasks(){
     document.getElementById('tasks-list').innerHTML = tasks.map(t => `
       <div class="row" data-id="${t.task_id}">
         <div class="info">
-          <div class="name">${t.title}</div>
+          <div class="name">${esc(t.title)}</div>
           <div class="meta">${t.due_date || ''}</div>
         </div>
         <div class="right"><button class="link-btn" data-done="${t.task_id}">Mark done</button></div>
@@ -927,7 +1109,7 @@ async function loadSales(){
     document.getElementById('sales-list').innerHTML = sales.map(s => `
       <div class="row">
         <div class="info">
-          <div class="name">${s.buyer_name}</div>
+          <div class="name">${esc(s.buyer_name)}</div>
           <div class="meta">${s.sale_date}</div>
         </div>
         <div class="right"><div class="value">${money(s.price)}</div><div class="pill ${s.payment_status.toLowerCase()}">${s.payment_status}</div></div>
@@ -939,7 +1121,7 @@ async function loadSales(){
 }
 document.getElementById('add-sale-btn').addEventListener('click', () => {
   const active = animals.filter(a => a.status === 'Active');
-  document.getElementById('sale-animal').innerHTML = active.map(a => `<option value="${a.animal_id}">${a.tag_number} — ${a.breed || ''} ${a.species}</option>`).join('');
+  document.getElementById('sale-animal').innerHTML = active.map(a => `<option value="${a.animal_id}">${esc(a.tag_number)} — ${esc(a.breed || '')} ${a.species}</option>`).join('');
   document.getElementById('sale-buyer').value = '';
   document.getElementById('sale-price').value = '';
   document.getElementById('sale-error').style.display = 'none';
@@ -980,8 +1162,8 @@ async function loadExpenses(){
     document.getElementById('expenses-list').innerHTML = expenses.map(e => `
       <div class="row">
         <div class="info">
-          <div class="name">${e.description || e.category}</div>
-          <div class="meta">${e.category} · ${e.expense_date}</div>
+          <div class="name">${esc(e.description || e.category)}</div>
+          <div class="meta">${esc(e.category)} · ${e.expense_date}</div>
         </div>
         <div class="right"><div class="value">${money(e.amount)}</div></div>
       </div>
@@ -1076,10 +1258,10 @@ async function loadMarketBrowse(){
     document.getElementById('mkt-browse-empty').style.display = listings.length ? 'none' : 'block';
     document.getElementById('mkt-browse-list').innerHTML = listings.map(l => `
       <div class="row" data-mine="0" data-id="${l.listing_id}">
-        <div class="tag-badge ${speciesClass(l.species)}">${l.tag_number}</div>
+        <div class="tag-badge ${speciesClass(l.species)}">${esc(l.tag_number)}</div>
         <div class="info">
-          <div class="name">${l.breed || ''} ${l.species}</div>
-          <div class="meta">${l.farm_location || ''}</div>
+          <div class="name">${esc(l.breed || '')} ${l.species}</div>
+          <div class="meta">${esc(l.farm_location || '')}</div>
         </div>
         <div class="right"><div class="value">${l.asking_price ? money(l.asking_price) : 'Ask'}</div></div>
       </div>
@@ -1099,9 +1281,9 @@ async function loadMarketMine(){
     document.getElementById('mkt-mine-empty').style.display = listings.length ? 'none' : 'block';
     document.getElementById('mkt-mine-list').innerHTML = listings.map(l => `
       <div class="row" data-id="${l.listing_id}">
-        <div class="tag-badge ${speciesClass(l.species)}">${l.tag_number}</div>
+        <div class="tag-badge ${speciesClass(l.species)}">${esc(l.tag_number)}</div>
         <div class="info">
-          <div class="name">${l.breed || ''} ${l.species}</div>
+          <div class="name">${esc(l.breed || '')} ${l.species}</div>
           <div class="meta">${l.status}</div>
         </div>
         <div class="right"><div class="value">${l.asking_price ? money(l.asking_price) : 'Ask'}</div></div>
@@ -1115,7 +1297,7 @@ async function loadMarketMine(){
 
 document.getElementById('mkt-list-btn').addEventListener('click', () => {
   const active = animals.filter(a => a.status === 'Active');
-  document.getElementById('listing-animal').innerHTML = active.map(a => `<option value="${a.animal_id}">${a.tag_number} — ${a.breed || ''} ${a.species}</option>`).join('');
+  document.getElementById('listing-animal').innerHTML = active.map(a => `<option value="${a.animal_id}">${esc(a.tag_number)} — ${esc(a.breed || '')} ${a.species}</option>`).join('');
   document.getElementById('listing-price').value = '';
   document.getElementById('listing-description').value = '';
   document.getElementById('listing-error').style.display = 'none';
@@ -1162,9 +1344,9 @@ async function openListingDetail(listingId, isMine){
       document.getElementById('ld-error').style.display = 'none';
     } else {
       document.getElementById('ld-contact-block').innerHTML = `
-        <div><strong>${currentListing.seller_name}</strong></div>
-        <div class="meta">${currentListing.seller_phone}</div>
-        <div class="meta">${currentListing.farm_location || ''}</div>
+        <div><strong>${esc(currentListing.seller_name)}</strong></div>
+        <div class="meta">${esc(currentListing.seller_phone)}</div>
+        <div class="meta">${esc(currentListing.farm_location || '')}</div>
       `;
       document.getElementById('ld-owner-actions').style.display = 'none';
     }
@@ -1346,7 +1528,7 @@ document.getElementById('imp-import-btn').addEventListener('click', async () => 
   }
 
   document.getElementById('imp-summary-text').textContent = `${success} of ${toImport.length} animals imported.`;
-  document.getElementById('imp-summary-errors').innerHTML = errors.map(e => `<div>${e}</div>`).join('');
+  document.getElementById('imp-summary-errors').innerHTML = errors.map(e => `<div>${esc(e)}</div>`).join('');
   showImpStep('summary');
   await loadHerd();
 });
@@ -1370,8 +1552,8 @@ async function loadNotifications(){
     document.getElementById('notifications-list').innerHTML = items.map(n => `
       <div class="row" data-id="${n.notification_id}" style="opacity:${n.read_at ? 0.55 : 1};">
         <div class="info">
-          <div class="name">${n.title}</div>
-          <div class="meta">${n.body || ''}</div>
+          <div class="name">${esc(n.title)}</div>
+          <div class="meta">${esc(n.body || '')}</div>
         </div>
       </div>
     `).join('');
