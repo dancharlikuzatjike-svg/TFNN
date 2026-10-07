@@ -39,4 +39,4 @@ Frontend files (GitHub Pages, same folder as `app.html`):
 
 ## Known open items
 - `src/migrate.js` was never reviewed — if CI (`.github/workflows/test.yml`) fails, this is the first place to check (may need a `postgresql-client` install step if it shells out to `psql`)
-- NamLITS direct import (vs. the general spreadsheet importer) is still pending a sample export file
+- NamLITS import is done for the "Herd Statement - Tagged List" PDF (Import button -> choose the PDF; parser in `namlits.js`, tests in `tests/namlits.test.js`). Other NamLITS reports are not supported yet. Groups that share one tag (e.g. sheep/goats) are imported as numbered animals such as `TAG-S01`. If the frontend is hosted separately (GitHub Pages), upload `namlits.js` next to `app.html`.
