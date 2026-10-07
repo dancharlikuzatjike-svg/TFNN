@@ -1,0 +1,528 @@
+{
+ "code": "af",
+ "name": "Afrikaans",
+ "phrases": {
+  "+ Add animal": "+ Voeg dier by",
+  "+ Add expense": "+ Voeg uitgawe by",
+  "+ List an animal": "+ Bied 'n dier aan",
+  "+ Record a sale": "+ Teken 'n verkoop aan",
+  "+ Task": "+ Taak",
+  "1 month": "1 maand",
+  "3 months": "3 maande",
+  "12 months": "12 maande",
+  "A general guide for Namibia. Rain and frost differ between the north and south, so adjust the dates for your farm and confirm vaccines and treatments with your vet or state vet. Tap": "'n Algemene gids vir Namibië. Reën en ryp verskil tussen die noorde en suide, so pas die datums vir jou plaas aan en bevestig entstowwe en behandelings by jou veearts of staatsveearts. Tik",
+  "to put a job in your Tasks list.": "om 'n taak by jou Take-lys te voeg.",
+  "Add an animal": "Voeg 'n dier by",
+  "Add expense": "Voeg uitgawe by",
+  "After breeding (about 90 days):": "Ná paring (ongeveer 90 dae):",
+  "All districts": "Alle distrikte",
+  "Already have an account? Log in": "Het jy reeds 'n rekening? Teken in",
+  "Amount (N$)": "Bedrag (N$)",
+  "Animal": "Dier",
+  "Asking price (N$, optional)": "Vraagprys (N$, opsioneel)",
+  "Before the breeding season (60 to 30 days):": "Voor die paarseisoen (60 tot 30 dae):",
+  "Body condition score (1 thin, 9 very fat)": "Liggaamstoestandtelling (1 maer, 9 baie vet)",
+  "Breed": "Ras",
+  "Browse": "Blaai",
+  "Bull": "Bul",
+  "Bull care checklist": "Bulversorging-kontrolelys",
+  "Buyer name": "Koper se naam",
+  "Buyer's phone (look them up to record the sale)": "Koper se foon (soek hulle op om die verkoop aan te teken)",
+  "Cancel this listing": "Kanselleer hierdie advertensie",
+  "Category": "Kategorie",
+  "Cattle": "Beeste",
+  "Class": "Klas",
+  "Close": "Maak toe",
+  "Confirm": "Bevestig",
+  "Cows per bull:": "Koeie per bul:",
+  "Create account": "Skep rekening",
+  "Date": "Datum",
+  "Date of birth": "Geboortedatum",
+  "Deferred": "Uitgestel",
+  "Description (optional)": "Beskrywing (opsioneel)",
+  "District": "Distrik",
+  "Done": "Klaar",
+  "Email (for email notifications)": "E-pos (vir e-poskennisgewings)",
+  "Email (optional — for welcome and alert emails)": "E-pos (opsioneel — vir welkom- en waarskuwing-e-posse)",
+  "Email farmers (admin)": "E-pos aan boere (admin)",
+  "Email me alerts, reminders and news": "Stuur vir my waarskuwings, herinnerings en nuus per e-pos",
+  "Equipment": "Toerusting",
+  "Expenses": "Uitgawes",
+  "Fail": "Druip",
+  "Farm location (optional)": "Plaasligging (opsioneel)",
+  "Farmer": "Boer",
+  "Feed": "Voer",
+  "Feed supplier": "Voerverskaffer",
+  "Final price (N$)": "Finale prys (N$)",
+  "For sale nearby": "Te koop in die omgewing",
+  "Full name": "Volle naam",
+  "Goat": "Bokke",
+  "Herd": "Kudde",
+  "I am a": "Ek is 'n",
+  "Import": "Voer in",
+  "Import herd from spreadsheet": "Voer kudde in vanaf sigblad",
+  "Import these animals": "Voer hierdie diere in",
+  "Importing…": "Voer tans in…",
+  "Keep bulls apart": "Hou bulle apart",
+  "List an animal": "Bied 'n dier aan",
+  "Log bull care": "Teken bulversorging aan",
+  "Log in": "Teken in",
+  "Log it": "Teken dit aan",
+  "Log out": "Teken uit",
+  "Mark all read": "Merk alles as gelees",
+  "Mark as sold": "Merk as verkoop",
+  "Market": "Mark",
+  "Match your columns": "Pas jou kolomme by",
+  "Membership": "Lidmaatskap",
+  "Membership payments (admin)": "Lidmaatskapbetalings (admin)",
+  "Message": "Boodskap",
+  "My listings": "My advertensies",
+  "New bulls:": "Nuwe bulle:",
+  "New here? Create an account": "Nuut hier? Skep 'n rekening",
+  "Next due (we will remind you)": "Volgende keer verskuldig (ons herinner jou)",
+  "No animals yet. Tap": "Nog geen diere nie. Tik",
+  "above to record your first one, or": "hierbo om jou eerste een aan te teken, of",
+  "No bulls yet. Tap": "Nog geen bulle nie. Tik",
+  "on the Herd tab, choose species": "op die Kudde-blad, kies spesie",
+  "and class": "en klas",
+  "No expenses recorded yet.": "Nog geen uitgawes aangeteken nie.",
+  "No notifications yet.": "Nog geen kennisgewings nie.",
+  "No open listings right now.": "Geen oop advertensies op die oomblik nie.",
+  "No sales recorded yet.": "Nog geen verkope aangeteken nie.",
+  "Notes (optional)": "Notas (opsioneel)",
+  "Nothing due right now.": "Niks is nou verskuldig nie.",
+  "Notifications": "Kennisgewings",
+  "Other": "Ander",
+  "Pass": "Slaag",
+  "Password": "Wagwoord",
+  "Password (min. 8 characters)": "Wagwoord (minstens 8 karakters)",
+  "Phone": "Foon",
+  "Plan": "Beplan",
+  "Preview": "Voorskou",
+  "Price (N$)": "Prys (N$)",
+  "Publish listing": "Plaas advertensie",
+  "Record a payment for phone number": "Teken 'n betaling aan vir foonnommer",
+  "Record a sale": "Teken 'n verkoop aan",
+  "Registration fee": "Registrasiefooi",
+  "Result": "Uitslag",
+  "Sales": "Verkope",
+  "Save": "Stoor",
+  "Save and add another": "Stoor en voeg nog een by",
+  "Save animal": "Stoor dier",
+  "Save expense": "Stoor uitgawe",
+  "Save sale": "Stoor verkoop",
+  "Send myself a test email": "Stuur vir myself 'n toets-e-pos",
+  "Send to": "Stuur aan",
+  "Send to farmers": "Stuur aan boere",
+  "Settings": "Instellings",
+  "Sheep": "Skape",
+  "Species *": "Spesie *",
+  "Subject": "Onderwerp",
+  "Tag number *": "Etiketnommer *",
+  "Tasks": "Take",
+  "The Future of Namibian Farming": "Die Toekoms van Namibiese Boerdery",
+  "TFNN — The Future of Namibian Farming": "TFNN — Die Toekoms van Namibiese Boerdery",
+  "Upload a .csv or .xlsx file. You'll match its columns to TFNN fields on the next screen — nothing imports until you confirm.": "Laai 'n .csv- of .xlsx-lêer op. Jy pas die kolomme op die volgende skerm by TFNN-velde — niks word ingevoer voordat jy bevestig nie.",
+  "Valuation": "Waardering",
+  "Value": "Waarde",
+  "Vet": "Veearts",
+  "Waking up the server — the first open can take up to a minute…": "Die bediener word wakker gemaak — die eerste keer kan tot 'n minuut neem…",
+  "What happened?": "Wat het gebeur?",
+  "Which animal?": "Watter dier?",
+  "You haven't listed anything yet.": "Jy het nog niks aangebied nie.",
+  "Your listings": "Jou advertensies",
+  "about 25 for a mature bull, about 15 for a bull under 2 years. Use more bulls on rough, large camps.": "ongeveer 25 vir 'n volwasse bul, ongeveer 15 vir 'n bul onder 2 jaar. Gebruik meer bulle in growwe, groot kampe.",
+  "breeding soundness exam by your vet (checks semen, testicles, sheath, feet and legs). Vaccinate and deworm. Check feet and body condition. Aim for a score of 6 to 7 out of 9.": "teeldiensbaarheidsondersoek deur jou veearts (toets semen, testikels, skede, voete en bene). Ent en dos. Kontroleer voete en liggaamstoestand. Mik vir 'n telling van 6 tot 7 uit 9.",
+  "from cows outside the season, and from each other if they fight.": "van koeie buite die seisoen, en van mekaar as hulle baklei.",
+  "keep them apart for 30 days and have your vet check them for venereal diseases (trichomonosis, vibriosis) and brucellosis before they join your cows.": "hou hulle 30 dae apart en laat jou veearts hulle toets vir geslagsiektes (trichomonose, vibriose) en brucellose voordat hulle by jou koeie aansluit.",
+  "take him out of the herd, record it, and rest him for about 2 months. Feed him back up to condition.": "haal hom uit die kudde, teken dit aan, en laat hom ongeveer 2 maande rus. Voer hom terug tot toestand.",
+  "tap to open": "tik om oop te maak",
+  "watch every bull weekly. Look for lameness, injuries, and bulls that are not working. Keep water and licks good. Swap out any bull that goes lame.": "hou elke bul weekliks dop. Kyk vir kreupelheid, beserings, en bulle wat nie werk nie. Hou water en lek goed. Vervang enige bul wat kreupel word.",
+  "your whole herd from a spreadsheet.": "jou hele kudde vanaf 'n sigblad.",
+  "— Not set —": "— Nie gestel nie —",
+  "← Back": "← Terug",
+  "🎙️ Voice note": "🎙️ Stemnota",
+  "🐂 Bull care": "🐂 Bulversorging",
+  "📄 Import": "📄 Voer in",
+  "📅 Season calendar": "📅 Seisoenkalender",
+  "📷 Add / update photo": "📷 Voeg foto by / dateer op",
+  "📷 Add photo": "📷 Voeg foto by",
+  "🔔 Enable push notifications on this device": "🔔 Skakel kennisgewings aan op hierdie toestel",
+  "e.g. 0142": "bv. 0142",
+  "e.g. Brahman, Dorper, Boer": "bv. Brahman, Dorper, Boer",
+  "e.g. anthrax booster": "bv. miltsiekte-hupstoot",
+  "e.g. good condition, dewormed last month": "bv. goeie toestand, verlede maand gedos",
+  "Quick log": "Vinnige aantekening",
+  "Language": "Taal",
+  "Cow": "Koei",
+  "Heifer": "Vers",
+  "Steer": "Os",
+  "Calf": "Kalf",
+  "Ewe": "Ooi",
+  "Ram": "Ram",
+  "Lamb": "Lam",
+  "Wether": "Hamel",
+  "Doe": "Bokooi",
+  "Buck": "Bokram",
+  "Kid": "Boklam",
+  "Born": "Gebore",
+  "Vaccinated": "Ingeënt",
+  "Sick / Treated": "Siek / Behandel",
+  "Fed": "Gevoer",
+  "Sold": "Verkoop",
+  "Moved Farm": "Plaas verskuif",
+  "Died": "Gevrek",
+  "Bought": "Gekoop",
+  "Breeding Soundness Exam": "Teeldiensbaarheidsondersoek",
+  "Joined Herd": "By kudde gevoeg",
+  "Removed from Herd": "Uit kudde verwyder",
+  "Body Condition Score": "Liggaamstoestandtelling",
+  "Hoof / Foot Care": "Hoef- / voetsorg",
+  "Dosed / Dewormed": "Gedos / ontwurm",
+  "Dipped / Tick Control": "Gedoop / bosluisbeheer",
+  "Active": "Aktief",
+  "Expired": "Verval",
+  "Cancelled": "Gekanselleer",
+  "January": "Januarie",
+  "February": "Februarie",
+  "March": "Maart",
+  "April": "April",
+  "May": "Mei",
+  "June": "Junie",
+  "July": "Julie",
+  "August": "Augustus",
+  "September": "September",
+  "October": "Oktober",
+  "November": "November",
+  "December": "Desember",
+  "Rainy season": "Reënseisoen",
+  "Autumn — rains ending": "Herfs — reëns eindig",
+  "Autumn — start of winter": "Herfs — begin van winter",
+  "Cold dry winter": "Koue droë winter",
+  "Late winter — dry": "Laat winter — droog",
+  "Hot dry build-up": "Warm droë opbou",
+  "First rains": "Eerste reëns",
+  "Green grass, flies, ticks and worms. Peak time for breeding and for tick-borne disease.": "Groen gras, vlieë, bosluise en wurms. Hoogtepunt vir paring en vir bosluissiektes.",
+  "Grass is at its best. Time to wean, pregnancy-test and plan winter feed.": "Die gras is op sy beste. Tyd om te speen, dragtigheid te toets en winterkos te beplan.",
+  "Grass loses its protein. Supplement feed, protect young stock from cold and guard against veld fires.": "Die gras verloor sy proteïen. Voer aan, beskerm jong vee teen koue en waak teen veldbrande.",
+  "Feed is at its shortest. Get bulls fit and book the vet before breeding.": "Voer is op sy skaarsste. Kry bulle fiks en bespreek die veearts voor paring.",
+  "Hot, dry and tough on stock. Calving begins and pre-rain vaccinations are due.": "Warm, droog en swaar op vee. Kalwing begin en entings voor die reën is verskuldig.",
+  "Fresh green flush can cause bloat. Join the bulls when the rains are established.": "Vars groen gras kan opblaas veroorsaak. Sit die bulle by die koeie wanneer die reëns gevestig is.",
+  "Check for ticks and tick-borne disease": "Kyk vir bosluise en bosluissiektes",
+  "Redwater and gallsickness risk is high after rain. Dip or spray as your vet advises.": "Rooiwater- en galsiekterisiko is hoog ná reën. Doop of spuit soos jou veearts raad gee.",
+  "Keep the phosphate or summer lick out": "Sit die fosfaat- of somerlek uit",
+  "Needed all through the green season.": "Nodig dwarsdeur die groen seisoen.",
+  "Check fences and water points after storms": "Kontroleer heinings en watergate ná storms",
+  "Check every bull weekly": "Kontroleer elke bul weekliks",
+  "Look at feet, legs, condition and whether he is working.": "Kyk na voete, bene, toestand en of hy werk.",
+  "Heifer calves: brucellosis vaccination": "Verskalwers: brucellose-entstof",
+  "Heifers 4 to 8 months, where your state vet requires it.": "Verse van 4 tot 8 maande, waar jou staatsveearts dit vereis.",
+  "Deworm young stock": "Dos jong vee",
+  "Worms peak in wet weather.": "Wurms bereik 'n hoogtepunt in nat weer.",
+  "Take bulls out about 90 days after joining": "Haal bulle uit ongeveer 90 dae ná hulle ingesit is",
+  "Record \"Removed from Herd\" in the Bull care tab.": "Teken \"Uit kudde verwyder\" aan in die Bulversorging-blad.",
+  "Weigh and record calves": "Weeg en teken kalwers aan",
+  "Deworm and dip after the rains": "Dos en doop ná die reëns",
+  "Ask your vet which products suit your area.": "Vra jou veearts watter produkte by jou area pas.",
+  "Book pregnancy testing": "Bespreek dragtigheidstoetsing",
+  "Do it about 60 to 90 days after the bulls came out.": "Doen dit ongeveer 60 tot 90 dae nadat die bulle uitgehaal is.",
+  "Pregnancy-test cows and cull the empties": "Toets koeie vir dragtigheid en skiet die leë uit",
+  "Empty cows eat winter feed for nothing.": "Leë koeie eet winterkos verniet.",
+  "Wean calves of 6 to 8 months": "Speen kalwers van 6 tot 8 maande",
+  "Wean the oldest or lightest cow first if she is thin.": "Speen eers die oudste of ligste koei as sy maer is.",
+  "Count your hay and winter feed": "Tel jou hooi en winterkos",
+  "Plan what you will buy before prices rise.": "Beplan wat jy gaan koop voordat pryse styg.",
+  "Cut fire breaks": "Maak brandstrate",
+  "Do it before the grass dries out.": "Doen dit voordat die gras uitdroog.",
+  "Start winter protein lick": "Begin met wintersproteïenlek",
+  "Dry grass is low in protein; stock lose condition without it.": "Droë gras is laag in proteïen; vee verloor toestand daarsonder.",
+  "Shelter lambs, kids and weak calves from cold nights": "Beskerm lammers, bokkies en swak kalwers teen koue nagte",
+  "Score body condition of the whole herd": "Gee liggaamstoestandtellings vir die hele kudde",
+  "Feed thin animals first.": "Voer maer diere eerste.",
+  "Check water troughs and pipes": "Kontroleer drinkbakke en pype",
+  "Make sure animals can drink on cold mornings.": "Maak seker diere kan drink op koue oggende.",
+  "Book the vet for bull breeding soundness exams": "Bespreek die veearts vir bulle se teeldiensbaarheidsondersoeke",
+  "Do them 30 to 60 days before the breeding season.": "Doen dit 30 tot 60 dae voor die paarseisoen.",
+  "Start feeding bulls up to condition 6 to 7": "Begin bulle voer tot toestand 6 tot 7",
+  "Fat is not the aim; fit is.": "Vet is nie die doel nie; fiks is.",
+  "Watch for veld fires": "Waak teen veldbrande",
+  "Breeding soundness exam for every bull": "Teeldiensbaarheidsondersoek vir elke bul",
+  "Mark the result in the Bull care tab.": "Teken die uitslag aan in die Bulversorging-blad.",
+  "Pre-rain vaccinations: anthrax and botulism": "Entings voor die reën: miltsiekte en botulisme",
+  "Do these before the rains start; ask your vet which are needed in your area.": "Doen dit voordat die reëns begin; vra jou veearts watter in jou area nodig is.",
+  "Watch heifers closely for calving": "Hou verse noukeurig dop vir kalwing",
+  "Heifers need the most help.": "Verse het die meeste hulp nodig.",
+  "Record new calves as \"Born\"": "Teken nuwe kalwers aan as \"Gebore\"",
+  "Tag them soon after birth.": "Merk hulle gou ná geboorte.",
+  "Treat calf navels at birth": "Behandel kalwers se naels by geboorte",
+  "Dip or spray with iodine.": "Doop of spuit met jodium.",
+  "Finish bull vaccinations and deworming": "Voltooi bulle se entings en dosing",
+  "Before they join the cows.": "Voordat hulle by die koeie aansluit.",
+  "Watch for bloat when the first green grass comes": "Waak teen opblaas wanneer die eerste groen gras kom",
+  "Do not put hungry cattle on lush green lands.": "Moenie honger beeste op welige groen lande sit nie.",
+  "Check bull condition and feet before joining": "Kontroleer bulle se toestand en voete voor hulle ingesit word",
+  "Join the bulls (about 1 bull to 25 cows)": "Sit die bulle by die koeie (ongeveer 1 bul vir 25 koeie)",
+  "Record \"Joined Herd\" in the Bull care tab. Use fewer cows for young bulls.": "Teken \"By kudde gevoeg\" aan in die Bulversorging-blad. Gebruik minder koeie vir jong bulle.",
+  "Start tick control for the wet season": "Begin bosluisbeheer vir die nat seisoen",
+  "No exam on record": "Geen ondersoek aangeteken nie",
+  "Exam OK": "Ondersoek in orde",
+  "Exam due soon": "Ondersoek binnekort verskuldig",
+  "Exam overdue": "Ondersoek agterstallig",
+  "Exam FAILED": "Ondersoek GEDRUIP",
+  "Exam deferred": "Ondersoek uitgestel",
+  "Not joined": "Nie by koeie nie",
+  "Bulls and cows": "Bulle en koeie",
+  "Log care": "Teken versorging aan",
+  "Take out of herd": "Haal uit kudde",
+  "Join with cows": "Sit by koeie",
+  "Account created — pending approval.": "Rekening geskep — wag vir goedkeuring.",
+  "Added ✓": "Bygevoeg ✓",
+  "Added": "Bygevoeg",
+  "Saved offline": "Vanlyn gestoor",
+  "Saved offline — will sync when back online": "Vanlyn gestoor — sal sinkroniseer wanneer jy weer aanlyn is",
+  "Back online — syncing…": "Weer aanlyn — sinkroniseer…",
+  "No connection — saved on this phone, will sync when online": "Geen verbinding — op hierdie foon gestoor, sal sinkroniseer wanneer aanlyn",
+  "Please enter the tag number.": "Voer asseblief die etiketnommer in.",
+  "Date of birth cannot be in the future.": "Geboortedatum kan nie in die toekoms wees nie.",
+  "Expense saved": "Uitgawe gestoor",
+  "Sale recorded": "Verkoop aangeteken",
+  "Listing published": "Advertensie geplaas",
+  "Listing cancelled": "Advertensie gekanselleer",
+  "Photo saved": "Foto gestoor",
+  "Settings saved": "Instellings gestoor",
+  "Thanks": "Dankie",
+  "Session expired": "Sessie het verval",
+  "Your session expired — please log in again.": "Jou sessie het verval — teken asseblief weer in.",
+  "Price on request": "Prys op aanvraag",
+  "Permission not granted": "Toestemming nie gegee nie",
+  "Push notifications enabled on this device": "Kennisgewings is aangeskakel op hierdie toestel",
+  "Push notifications are not supported on this browser": "Kennisgewings word nie op hierdie blaaier ondersteun nie",
+  "Push is not configured on the server yet": "Kennisgewings is nog nie op die bediener opgestel nie",
+  "Type the phone number first": "Tik eers die foonnommer in",
+  "That file has no data rows": "Daardie lêer het geen datareëls nie",
+  "Tag number and species must both be mapped": "Etiketnommer en spesie moet albei gekoppel word",
+  "Buyer phone and final price are required": "Koper se foon en finale prys word vereis",
+  "Could not load media": "Kon nie media laai nie",
+  "Tag number": "Etiketnommer",
+  "Species": "Spesie",
+  "Select…": "Kies…",
+  "During breeding:": "Gedurende paring:",
+  "I have paid": "Ek het betaal",
+  "Payment reference:": "Betalingsverwysing:",
+  "Mark done": "Merk klaar",
+  "Live herd value": "Lewendige kuddewaarde",
+  "Sales income": "Verkoopinkomste",
+  "Net cash position": "Netto kontantposisie",
+  "Welcome to TFNN": "Welkom by TFNN",
+  "No breeding soundness exam recorded. Have your vet examine him 30–60 days before breeding.": "Geen teeldiensbaarheidsondersoek aangeteken nie. Laat jou veearts hom 30–60 dae voor paring ondersoek.",
+  "Failed his last breeding soundness exam — do not use until re-tested and passed.": "Het sy laaste teeldiensbaarheidsondersoek gedruip — moenie gebruik totdat hy hertoets is en geslaag het nie.",
+  "Breeding soundness exam due soon — book your vet before the next season.": "Teeldiensbaarheidsondersoek binnekort verskuldig — bespreek jou veearts voor die volgende seisoen.",
+  "Exam was deferred — re-test before breeding.": "Ondersoek is uitgestel — hertoets voor paring.",
+  "Score his body condition again — it is over 60 days old.": "Gee sy liggaamstoestand weer 'n telling — dit is meer as 60 dae oud.",
+  "Vaccinations not recorded in the last year.": "Geen entings in die afgelope jaar aangeteken nie.",
+  "No deworming recorded in the last 6 months.": "Geen dosing in die afgelope 6 maande aangeteken nie.",
+  "Add your cows and heifers (class Cow / Heifer) to see how many bulls you need.": "Voeg jou koeie en verse (klas Koei / Vers) by om te sien hoeveel bulle jy nodig het."
+ },
+ "patterns": [
+  [
+   "^(\\d+) open$",
+   "$1 oop"
+  ],
+  [
+   "^(\\d+) animals?$",
+   "$1 diere"
+  ],
+  [
+   "^1 bulls?$",
+   "1 bul"
+  ],
+  [
+   "^(\\d+) bulls$",
+   "$1 bulle"
+  ],
+  [
+   "^(\\d+) cows and heifers$",
+   "$1 koeie en verse"
+  ],
+  [
+   "^(\\S+) cows per bull$",
+   "$1 koeie per bul"
+  ],
+  [
+   "^Your free trial ends in (\\d+) days?\\.$",
+   "Jou gratis proeftydperk eindig oor $1 dae."
+  ],
+  [
+   "^Your membership renews in (\\d+) days?\\.$",
+   "Jou lidmaatskap word oor $1 dae hernu."
+  ],
+  [
+   "^Your membership has expired\\. You can still view your records\\.$",
+   "Jou lidmaatskap het verval. Jy kan steeds jou rekords sien."
+  ],
+  [
+   "^See how to pay$",
+   "Sien hoe om te betaal"
+  ],
+  [
+   "^Renew$",
+   "Hernu"
+  ],
+  [
+   "^Active until (\\S+)$",
+   "Aktief tot $1"
+  ],
+  [
+   "^Free trial, (\\d+) days left$",
+   "Gratis proeftydperk, $1 dae oor"
+  ],
+  [
+   "^Monthly fee: (N\\$[\\d,.]+) · Registration fee \\(once\\): (N\\$[\\d,.]+)$",
+   "Maandelikse fooi: $1 · Registrasiefooi (eenmalig): $2"
+  ],
+  [
+   "^Monthly fee: (N\\$[\\d,.]+)$",
+   "Maandelikse fooi: $1"
+  ],
+  [
+   "^Due now: (N\\$[\\d,.]+)$",
+   "Nou verskuldig: $1"
+  ],
+  [
+   "^Payment reference: (.+)$",
+   "Betalingsverwysing: $1"
+  ],
+  [
+   "^Marketplace fee: (\\S+)% of the sale price\\.$",
+   "Markfooi: $1% van die verkoopprys."
+  ],
+  [
+   "^Small farmer$",
+   "Kleinboer"
+  ],
+  [
+   "^Big farm$",
+   "Groot plaas"
+  ],
+  [
+   "^Big farm \\(300\\+ animals\\)$",
+   "Groot plaas (300+ diere)"
+  ],
+  [
+   "^Supplier$",
+   "Verskaffer"
+  ],
+  [
+   "^Out of herd (\\d+) days$",
+   "Uit kudde $1 dae"
+  ],
+  [
+   "^With cows (\\d+) days$",
+   "By die koeie $1 dae"
+  ],
+  [
+   "^Saved: (.+) for (.+)$",
+   "Gestoor: $1 vir $2"
+  ],
+  [
+   "^Logged: (.+) for (.+)$",
+   "Aangeteken: $1 vir $2"
+  ],
+  [
+   "^Your bulls can cover about (\\d+) cows; you have (\\d+)\\. Good\\.$",
+   "Jou bulle kan ongeveer $1 koeie dek; jy het $2. Goed."
+  ],
+  [
+   "^You have (\\d+) breeding females and no bulls recorded\\. You need about (\\d+) mature bull\\(s\\)\\.$",
+   "Jy het $1 teelwyfies en geen bulle aangeteken nie. Jy het ongeveer $2 volwasse bul(le) nodig."
+  ],
+  [
+   "^(\\d+) breeding females is more than your bulls can cover \\(about (\\d+)\\)\\. Add another bull, or conception rates will suffer\\.$",
+   "$1 teelwyfies is meer as wat jou bulle kan dek (ongeveer $2). Voeg nog 'n bul by, anders sal dragtigheidsyfers daal."
+  ],
+  [
+   "^Breeding soundness exam is overdue \\((\\d+) days ago\\)\\.$",
+   "Teeldiensbaarheidsondersoek is agterstallig ($1 dae gelede)."
+  ],
+  [
+   "^Has been with the cows (\\d+) days\\. Take him out after about 90 days so calving stays tight\\.$",
+   "Is al $1 dae by die koeie. Haal hom ná ongeveer 90 dae uit sodat kalwing saamgetrek bly."
+  ],
+  [
+   "^Resting — (\\d+) more days to regain condition before the next season\\.$",
+   "Rus — nog $1 dae om toestand terug te kry voor die volgende seisoen."
+  ],
+  [
+   "^Body condition (\\d+)/9 is thin — feed him up before and during breeding\\.$",
+   "Liggaamstoestand $1/9 is maer — voer hom op voor en tydens paring."
+  ],
+  [
+   "^Body condition (\\d+)/9 is very fat — fat bulls breed poorly and go lame\\.$",
+   "Liggaamstoestand $1/9 is baie vet — vet bulle paar swak en word kreupel."
+  ],
+  [
+   "^Young bull \\((\\d+) months\\): give him fewer cows \\(about 15\\) and let him finish growing\\.$",
+   "Jong bul ($1 maande): gee hom minder koeie (ongeveer 15) en laat hom klaar groei."
+  ],
+  [
+   "^Condition (\\d+)/9$",
+   "Toestand $1/9"
+  ],
+  [
+   "^(\\d+)y (\\d+)m$",
+   "$1j $2m"
+  ],
+  [
+   "^Bull (.+)$",
+   "Bul $1"
+  ],
+  [
+   "^(.+) Cattle$",
+   "$1 Beeste"
+  ],
+  [
+   "^(.+) Sheep$",
+   "$1 Skape"
+  ],
+  [
+   "^(.+) Goat$",
+   "$1 Bokke"
+  ],
+  [
+   "^(\\d+) active animals?$",
+   "$1 aktiewe diere"
+  ],
+  [
+   "^1 sales?$",
+   "1 verkoop"
+  ],
+  [
+   "^(\\d+) sales$",
+   "$1 verkope"
+  ],
+  [
+   "^1 expenses?$",
+   "1 uitgawe"
+  ],
+  [
+   "^(\\d+) expenses$",
+   "$1 uitgawes"
+  ],
+  [
+   "^1 bulls?$",
+   "1 bul"
+  ],
+  [
+   "^· Free trial, (\\d+) days left$",
+   "· Gratis proeftydperk, $1 dae oor"
+  ],
+  [
+   "^· Active until (\\S+)$",
+   "· Aktief tot $1"
+  ],
+  [
+   "^· Expired$",
+   "· Verval"
+  ]
+ ]
+}

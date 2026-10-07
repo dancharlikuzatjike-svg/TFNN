@@ -1,4 +1,6 @@
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
+// Return DATE columns as plain 'YYYY-MM-DD' text so a date never shifts by a day with the server's time zone
+types.setTypeParser(1082, (v) => v);
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,

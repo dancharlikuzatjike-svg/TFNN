@@ -42,6 +42,12 @@ const sendFrontend = (file) => (req, res, next) => {
 };
 FRONTEND_FILES.forEach((f) => app.get('/' + f, sendFrontend(f)));
 app.get('/', sendFrontend('app.html'));
+// Translation files: lang/index.json plus one <code>.json per language (e.g. af.json)
+app.get('/lang/:file', (req, res, next) => {
+  if (!/^(index|[a-z]{2,3})\.json$/.test(req.params.file)) return next();
+  res.set('Cache-Control', 'no-cache');
+  res.sendFile(path.join(__dirname, '..', 'lang', req.params.file), (err) => { if (err) next(); });
+});
 
 // Jobs use their own secret, so mount before the routers that apply login to everything under /api/v1
 app.use('/api/v1/jobs', jobsRoutes);

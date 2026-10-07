@@ -201,6 +201,10 @@ details.month .mbody{ padding:0 14px 8px; }
     </p>
   </div>
 
+  <p style="text-align:center; margin-top:18px;">
+    <select class="lang-select" aria-label="Language" style="width:auto; min-width:150px;"><option value="en">English</option></select>
+  </p>
+
   <div id="register-form" style="display:none;">
     <label>Full name</label>
     <input type="text" id="reg-name">
@@ -542,6 +546,8 @@ details.month .mbody{ padding:0 14px 8px; }
     <div id="membership-info" style="font-size:0.86rem; line-height:1.5;"></div>
     <button class="primary" id="member-paid-btn" style="margin-top:10px; padding:9px;">I have paid</button>
   </div>
+  <label>Language</label>
+  <select class="lang-select"><option value="en">English</option></select>
   <label>Email (for email notifications)</label>
   <input type="email" id="settings-email" placeholder="you@example.com">
   <label style="display:flex; align-items:center; gap:8px; margin:6px 0 12px;"><input type="checkbox" id="settings-email-on" style="width:auto; margin:0;"> Email me alerts, reminders and news</label>
@@ -617,6 +623,99 @@ details.month .mbody{ padding:0 14px 8px; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 const API_BASE = 'https://tfnn-1.onrender.com/api/v1';
+
+// ---- LANGUAGE (phrase-book translation; English is the default and the fallback) ----
+const LANG_KEY = 'tfnn_lang';
+const LANG_BASE = API_BASE.replace('/api/v1', '/lang/');
+let langPack = null;
+let langCode = 'en';
+const normText = (s) => String(s).replace(/\s+/g, ' ').trim();
+function trText(raw) {
+  if (!langPack) return null;
+  const k = normText(raw);
+  if (!k || !/[A-Za-z]/.test(k)) return null;
+  const v = langPack.phrases[k];
+  if (v !== undefined && v !== '') return v;
+  for (const [re, rep] of langPack.patterns) { if (re.test(k)) return k.replace(re, rep); }
+  // "Ewe · Active", "Vaccinated — S-001": translate each part on its own
+  for (const sep of [' · ', ' — ']) {
+    if (k.indexOf(sep) > 0) {
+      let hit = false;
+      const parts = k.split(sep).map((x) => { const r = trText(x); if (r != null) hit = true; return r == null ? x : r; });
+      if (hit) return parts.join(sep);
+    }
+  }
+  return null;
+}
+const SKIP_TAGS = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1, CODE: 1 };
+function translateNode(n) {
+  if (!langPack || !n) return;
+  if (n.nodeType === 3) {
+    const p = n.parentNode;
+    if (!p || SKIP_TAGS[p.nodeName]) return;
+    const raw = n.nodeValue;
+    const v = trText(raw);
+    if (v == null) return;
+    const out = raw.match(/^\s*/)[0] + v + raw.match(/\s*$/)[0];
+    if (out !== raw) n.nodeValue = out;
+  } else if (n.nodeType === 1) {
+    if (SKIP_TAGS[n.nodeName]) return;
+    if (n.nodeName === 'OPTION' && !n.hasAttribute('value')) n.setAttribute('value', n.textContent); // keep the real value stable
+    ['placeholder', 'title', 'aria-label'].forEach((a) => {
+      if (n.hasAttribute && n.hasAttribute(a)) { const v = trText(n.getAttribute(a)); if (v != null) n.setAttribute(a, v); }
+    });
+    n.childNodes.forEach(translateNode);
+  }
+}
+function startTranslating() {
+  document.documentElement.lang = langCode;
+  translateNode(document.body);
+  document.title = trText(document.title) || document.title;
+  new MutationObserver((muts) => {
+    muts.forEach((m) => {
+      if (m.type === 'characterData') translateNode(m.target);
+      else m.addedNodes.forEach(translateNode);
+    });
+  }).observe(document.body, { childList: true, subtree: true, characterData: true });
+}
+function usePack(code, pack) {
+  langCode = code;
+  langPack = { phrases: pack.phrases || {}, patterns: (pack.patterns || []).map(([re, rep]) => [new RegExp(re), rep]) };
+}
+async function initLang() {
+  let code = 'en';
+  try { code = localStorage.getItem(LANG_KEY) || 'en'; } catch (e) {}
+  if (code === 'en' || !/^[a-z]{2,3}$/.test(code)) return;
+  let pack = null;
+  try {
+    const r = await fetch(LANG_BASE + code + '.json', { cache: 'no-cache' });
+    if (r.ok) { pack = await r.json(); try { localStorage.setItem('tfnn_pack_' + code, JSON.stringify(pack)); } catch (e) {} }
+  } catch (e) {}
+  if (!pack) { try { pack = JSON.parse(localStorage.getItem('tfnn_pack_' + code) || 'null'); } catch (e) {} }
+  if (!pack) return;
+  usePack(code, pack);
+  startTranslating();
+}
+const t = (s) => { const v = trText(s); return v == null ? s : v; };
+async function fillLanguagePickers() {
+  let list = [{ code: 'en', name: 'English' }];
+  try {
+    const r = await fetch(LANG_BASE + 'index.json', { cache: 'no-cache' });
+    if (r.ok) { list = await r.json(); try { localStorage.setItem('tfnn_lang_list', JSON.stringify(list)); } catch (e) {} }
+  } catch (e) { try { list = JSON.parse(localStorage.getItem('tfnn_lang_list') || 'null') || list; } catch (e2) {} }
+  document.querySelectorAll('.lang-select').forEach((sel) => {
+    sel.innerHTML = list.map((l) => '<option value="' + esc(l.code) + '">' + esc(l.name) + (l.beta ? ' (beta)' : '') + '</option>').join('');
+    sel.value = langCode;
+  });
+}
+document.addEventListener('change', (e) => {
+  if (!e.target.classList || !e.target.classList.contains('lang-select')) return;
+  try { localStorage.setItem(LANG_KEY, e.target.value); } catch (err) {}
+  location.reload();
+});
+initLang();
+fillLanguagePickers();
+
 let token = null;
 let refreshToken = null;
 let currentUser = null;
