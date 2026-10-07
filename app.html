@@ -260,7 +260,7 @@ details.month .mbody{ padding:0 14px 8px; }
         <button class="link-btn" id="import-herd-btn" style="flex:1; border:1px dashed var(--line); border-radius:var(--radius); padding:8px; text-align:center; text-decoration:none;">📄 Import</button>
       </div>
       <div id="herd-list"></div>
-      <div class="empty-note" id="herd-empty" style="display:none;">No animals yet. Tap <strong>+ Add animal</strong> above to record your first one, or <strong>Import</strong> your whole herd from a spreadsheet.</div>
+      <div class="empty-note" id="herd-empty" style="display:none;">No animals yet. Tap <strong>+ Add animal</strong> above to record your first one, or <strong>Import</strong> your whole herd from your NamLITS herd statement (PDF) or a spreadsheet.</div>
     </div>
 
     <div class="panel" id="panel-tasks">
@@ -499,9 +499,9 @@ details.month .mbody{ padding:0 14px 8px; }
 <div class="sheet" id="import-sheet">
   <div class="sheet-handle"></div>
   <div class="ql-step active" id="imp-step-file">
-    <div class="ql-title">Import herd from spreadsheet</div>
-    <p class="meta" style="color:var(--ink-soft); margin-bottom:14px;">Upload a .csv or .xlsx file. You'll match its columns to TFNN fields on the next screen — nothing imports until you confirm.</p>
-    <input type="file" id="imp-file-input" accept=".csv,.xlsx,.xls">
+    <div class="ql-title">Import your herd</div>
+    <p class="meta" style="color:var(--ink-soft); margin-bottom:14px;">Upload your <strong>NamLITS herd statement (PDF)</strong>, or a .csv / .xlsx spreadsheet. You'll see a preview first — nothing is added until you confirm.</p>
+    <input type="file" id="imp-file-input" accept=".pdf,.csv,.xlsx,.xls,application/pdf">
   </div>
   <div class="ql-step" id="imp-step-map">
     <button class="ql-back" id="imp-back-file">&larr; Back</button>
@@ -512,6 +512,7 @@ details.month .mbody{ padding:0 14px 8px; }
   <div class="ql-step" id="imp-step-preview">
     <button class="ql-back" id="imp-back-map">&larr; Back</button>
     <div class="ql-title">Preview <span class="meta" id="imp-row-count" style="font-weight:400;"></span></div>
+    <div id="imp-preview-note" class="meta" style="display:none; color:var(--ink-soft); margin-bottom:10px;"></div>
     <div id="imp-preview-table" style="font-size:0.8rem; margin-bottom:16px; max-height:220px; overflow-y:auto; border:1px solid var(--line); border-radius:var(--radius); padding:10px;"></div>
     <div class="error-msg" id="imp-preview-warning" style="display:none; color:var(--gold);"></div>
     <button class="primary" id="imp-import-btn">Import these animals</button>
@@ -621,6 +622,7 @@ details.month .mbody{ padding:0 14px 8px; }
 <div class="toast" id="toast"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="namlits.js"></script>
 <script>
 const API_BASE = 'https://tfnn-1.onrender.com/api/v1';
 
@@ -1637,11 +1639,12 @@ function showImpStep(name){
   document.getElementById('imp-step-' + name).classList.add('active');
 }
 document.getElementById('imp-back-file').addEventListener('click', () => showImpStep('file'));
-document.getElementById('imp-back-map').addEventListener('click', () => showImpStep('map'));
+document.getElementById('imp-back-map').addEventListener('click', () => showImpStep(importState.source === 'namlits' ? 'file' : 'map'));
 
 document.getElementById('imp-file-input').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
+  if (/\.pdf$/i.test(file.name) || file.type === 'application/pdf') { importNamlitsPdf(file); return; }
   const reader = new FileReader();
   reader.onload = (ev) => {
     try {
@@ -1707,24 +1710,109 @@ document.getElementById('imp-preview-btn').addEventListener('click', () => {
     return { tag_number, species: speciesMatch, breed: breed || undefined, date_of_birth, class: cls || undefined, valid: !!(tag_number && speciesMatch) };
   });
 
-  const validCount = importState.mappedRows.filter(r => r.valid).length;
-  document.getElementById('imp-row-count').textContent = `(${validCount} of ${importState.mappedRows.length} rows ready)`;
+  importState.source = 'spreadsheet';
+  renderImportPreview({
+    warningText: warnings.length ? warnings.length + ' row(s) will be skipped — see the summary after import for details.' : '',
+    note: '',
+  });
+});
+
+// Shared by the spreadsheet and NamLITS flows: shows importState.mappedRows as a preview.
+function renderImportPreview({ warningText, note, rowLimit }){
+  const limit = rowLimit || 8;
+  const rows = importState.mappedRows;
+  const validCount = rows.filter(r => r.valid).length;
+  document.getElementById('imp-row-count').textContent = `(${validCount} of ${rows.length} rows ready)`;
   document.getElementById('imp-preview-table').innerHTML = `
     <table style="width:100%; border-collapse:collapse;">
-      <tr style="font-weight:600; border-bottom:1px solid var(--line);"><td>Tag</td><td>Species</td><td>Breed</td></tr>
-      ${importState.mappedRows.slice(0, 8).map(r => `<tr style="opacity:${r.valid ? 1 : 0.4};"><td>${r.tag_number || '—'}</td><td>${r.species || '—'}</td><td>${r.breed || ''}</td></tr>`).join('')}
+      <tr style="font-weight:600; border-bottom:1px solid var(--line);"><td>Tag</td><td>Species</td><td>Class</td><td>Breed</td></tr>
+      ${rows.slice(0, limit).map(r => `<tr style="opacity:${r.valid ? 1 : 0.4};"><td>${esc(r.tag_number) || '—'}</td><td>${esc(r.species) || '—'}</td><td>${esc(r.class) || ''}</td><td>${esc(r.breed) || ''}</td></tr>`).join('')}
     </table>
-    ${importState.mappedRows.length > 8 ? `<p class="meta" style="margin-top:8px;">…and ${importState.mappedRows.length - 8} more</p>` : ''}
+    ${rows.length > limit ? `<p class="meta" style="margin-top:8px;">…and ${rows.length - limit} more</p>` : ''}
   `;
+  const noteEl = document.getElementById('imp-preview-note');
+  noteEl.style.display = note ? 'block' : 'none';
+  noteEl.innerHTML = note || '';
   const warnEl = document.getElementById('imp-preview-warning');
-  if (warnings.length) {
-    warnEl.style.display = 'block';
-    warnEl.textContent = warnings.length + ' row(s) will be skipped — see the summary after import for details.';
-  } else {
-    warnEl.style.display = 'none';
-  }
+  warnEl.style.display = warningText ? 'block' : 'none';
+  warnEl.textContent = warningText || '';
+  document.getElementById('imp-import-btn').disabled = validCount === 0;
   showImpStep('preview');
-});
+}
+
+// ---- NAMLITS HERD STATEMENT (PDF) ----
+function loadPdfJs(){
+  return new Promise((resolve, reject) => {
+    if (window.pdfjsLib) return resolve(window.pdfjsLib);
+    const base = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+    const s = document.createElement('script');
+    s.src = base + 'pdf.min.js';
+    s.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = base + 'pdf.worker.min.js'; resolve(window.pdfjsLib); };
+    s.onerror = () => reject(new Error('Could not load the PDF reader. Check your connection and try again.'));
+    document.head.appendChild(s);
+  });
+}
+
+async function readPdfText(arrayBuffer){
+  const pdfjs = await loadPdfJs();
+  const doc = await pdfjs.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+  let lines = [];
+  for (let p = 1; p <= doc.numPages; p++) {
+    const page = await doc.getPage(p);
+    const content = await page.getTextContent();
+    lines = lines.concat(window.NamlitsImport.linesFromItems(
+      content.items.map(i => ({ str: i.str, x: i.transform[4], y: i.transform[5] }))
+    ));
+  }
+  return lines.join('\n');
+}
+
+async function importNamlitsPdf(file){
+  showToast('Reading your statement…');
+  let text;
+  try {
+    text = await readPdfText(await file.arrayBuffer());
+  } catch (err) {
+    showToast('Could not read that PDF: ' + err.message, true);
+    return;
+  }
+  const N = window.NamlitsImport;
+  if (!N.looksLikeNamlits(text)) {
+    showToast("That PDF doesn't look like a NamLITS herd statement", true);
+    return;
+  }
+  const parsed = N.parse(text);
+  const result = N.toAnimals(parsed);
+  if (!result.animals.length) {
+    showToast('No animals found in that statement', true);
+    return;
+  }
+
+  const have = new Set(animals.map(a => String(a.tag_number)));
+  let already = 0;
+  importState = { headers: [], rows: [], mapping: {}, source: 'namlits',
+    mappedRows: result.animals.map(a => {
+      const dup = have.has(a.tag_number);
+      if (dup) already++;
+      return { ...a, valid: !dup };
+    }) };
+
+  const bySpecies = {};
+  result.animals.forEach(a => { bySpecies[a.species] = (bySpecies[a.species] || 0) + 1; });
+  const counts = Object.entries(bySpecies).map(([sp, n]) => `${n} ${sp === 'Goat' ? 'goats' : sp.toLowerCase()}`).join(', ');
+  const check = result.totalMatches === true ? ' ✓ matches the statement total' : '';
+  const numbered = result.animals.filter(a => a.numbered).length;
+  const note = [
+    parsed.establishment ? `<strong>${esc(parsed.establishment)}</strong>` : '',
+    `${esc(counts)} = ${result.animals.length} animals${check}`,
+    numbered ? `${numbered} animals are listed as groups that share a tag, so they are numbered (for example <strong>${esc(result.animals.find(a => a.numbered).tag_number)}</strong>). You can rename each tag later.` : '',
+  ].filter(Boolean).join('<br>');
+
+  const warningParts = [];
+  if (already) warningParts.push(`${already} animal(s) are already in your herd and will be skipped.`);
+  result.warnings.filter(w => !/share the tag/.test(w)).forEach(w => warningParts.push(w));
+  renderImportPreview({ warningText: warningParts.join(' '), note, rowLimit: 6 });
+}
 
 document.getElementById('imp-import-btn').addEventListener('click', async () => {
   const toImport = importState.mappedRows.filter(r => r.valid);
