@@ -1,0 +1,524 @@
+{
+ "code": "de",
+ "name": "Deutsch",
+ "phrases": {
+  "+ Add animal": "+ Tier hinzufügen",
+  "+ Add expense": "+ Ausgabe hinzufügen",
+  "+ List an animal": "+ Tier anbieten",
+  "+ Record a sale": "+ Verkauf erfassen",
+  "+ Task": "+ Aufgabe",
+  "1 month": "1 Monat",
+  "3 months": "3 Monate",
+  "12 months": "12 Monate",
+  "A general guide for Namibia. Rain and frost differ between the north and south, so adjust the dates for your farm and confirm vaccines and treatments with your vet or state vet. Tap": "Ein allgemeiner Leitfaden für Namibia. Regen und Frost unterscheiden sich zwischen Norden und Süden. Passen Sie die Termine an Ihre Farm an und klären Sie Impfungen und Behandlungen mit Ihrem Tierarzt oder dem staatlichen Veterinär ab. Tippen Sie auf",
+  "to put a job in your Tasks list.": "um eine Aufgabe in Ihre Aufgabenliste zu setzen.",
+  "Add an animal": "Tier hinzufügen",
+  "Add expense": "Ausgabe hinzufügen",
+  "After breeding (about 90 days):": "Nach der Deckzeit (etwa 90 Tage):",
+  "All districts": "Alle Bezirke",
+  "Already have an account? Log in": "Schon ein Konto? Anmelden",
+  "Amount (N$)": "Betrag (N$)",
+  "Animal": "Tier",
+  "Asking price (N$, optional)": "Preisvorstellung (N$, optional)",
+  "Before the breeding season (60 to 30 days):": "Vor der Deckzeit (60 bis 30 Tage):",
+  "Body condition score (1 thin, 9 very fat)": "Körperkondition (1 mager, 9 sehr fett)",
+  "Breed": "Rasse",
+  "Browse": "Durchsuchen",
+  "Bull": "Bulle",
+  "Bull care checklist": "Checkliste Bullenpflege",
+  "Buyer name": "Name des Käufers",
+  "Buyer's phone (look them up to record the sale)": "Telefon des Käufers (suchen, um den Verkauf zu erfassen)",
+  "Cancel this listing": "Dieses Angebot zurückziehen",
+  "Category": "Kategorie",
+  "Cattle": "Rinder",
+  "Class": "Klasse",
+  "Close": "Schließen",
+  "Confirm": "Bestätigen",
+  "Cows per bull:": "Kühe pro Bulle:",
+  "Create account": "Konto erstellen",
+  "Date": "Datum",
+  "Date of birth": "Geburtsdatum",
+  "Deferred": "Verschoben",
+  "Description (optional)": "Beschreibung (optional)",
+  "District": "Bezirk",
+  "Done": "Erledigt",
+  "Email (for email notifications)": "E-Mail (für E-Mail-Benachrichtigungen)",
+  "Email (optional — for welcome and alert emails)": "E-Mail (optional — für Willkommens- und Warn-E-Mails)",
+  "Email farmers (admin)": "Farmer per E-Mail benachrichtigen (Admin)",
+  "Email me alerts, reminders and news": "Warnungen, Erinnerungen und Neuigkeiten per E-Mail senden",
+  "Equipment": "Ausrüstung",
+  "Expenses": "Ausgaben",
+  "Fail": "Nicht bestanden",
+  "Farm location (optional)": "Standort der Farm (optional)",
+  "Farmer": "Farmer",
+  "Feed": "Futter",
+  "Feed supplier": "Futterlieferant",
+  "Final price (N$)": "Endpreis (N$)",
+  "For sale nearby": "In der Nähe zu verkaufen",
+  "Full name": "Vollständiger Name",
+  "Goat": "Ziege",
+  "Herd": "Herde",
+  "I am a": "Ich bin",
+  "Import": "Importieren",
+  "Import herd from spreadsheet": "Herde aus Tabelle importieren",
+  "Import these animals": "Diese Tiere importieren",
+  "Importing…": "Wird importiert…",
+  "Keep bulls apart": "Bullen getrennt halten",
+  "List an animal": "Tier anbieten",
+  "Log bull care": "Bullenpflege erfassen",
+  "Log in": "Anmelden",
+  "Log it": "Erfassen",
+  "Log out": "Abmelden",
+  "Mark all read": "Alle als gelesen markieren",
+  "Mark as sold": "Als verkauft markieren",
+  "Market": "Markt",
+  "Match your columns": "Spalten zuordnen",
+  "Membership": "Mitgliedschaft",
+  "Membership payments (admin)": "Mitgliedszahlungen (Admin)",
+  "Message": "Nachricht",
+  "My listings": "Meine Angebote",
+  "New bulls:": "Neue Bullen:",
+  "New here? Create an account": "Neu hier? Konto erstellen",
+  "Next due (we will remind you)": "Nächster Termin (wir erinnern Sie)",
+  "No animals yet. Tap": "Noch keine Tiere. Tippen Sie auf",
+  "above to record your first one, or": "oben, um Ihr erstes zu erfassen, oder auf",
+  "No bulls yet. Tap": "Noch keine Bullen. Tippen Sie auf",
+  "on the Herd tab, choose species": "im Reiter Herde, wählen Sie die Art",
+  "and class": "und die Klasse",
+  "No expenses recorded yet.": "Noch keine Ausgaben erfasst.",
+  "No notifications yet.": "Noch keine Benachrichtigungen.",
+  "No open listings right now.": "Derzeit keine offenen Angebote.",
+  "No sales recorded yet.": "Noch keine Verkäufe erfasst.",
+  "Notes (optional)": "Notizen (optional)",
+  "Nothing due right now.": "Derzeit nichts fällig.",
+  "Notifications": "Benachrichtigungen",
+  "Other": "Sonstiges",
+  "Pass": "Bestanden",
+  "Password": "Passwort",
+  "Password (min. 8 characters)": "Passwort (mind. 8 Zeichen)",
+  "Phone": "Telefon",
+  "Plan": "Plan",
+  "Preview": "Vorschau",
+  "Price (N$)": "Preis (N$)",
+  "Publish listing": "Angebot veröffentlichen",
+  "Record a payment for phone number": "Zahlung erfassen für Telefonnummer",
+  "Record a sale": "Verkauf erfassen",
+  "Registration fee": "Registrierungsgebühr",
+  "Result": "Ergebnis",
+  "Sales": "Verkäufe",
+  "Save": "Speichern",
+  "Save and add another": "Speichern und weiteres hinzufügen",
+  "Save animal": "Tier speichern",
+  "Save expense": "Ausgabe speichern",
+  "Save sale": "Verkauf speichern",
+  "Send myself a test email": "Test-E-Mail an mich senden",
+  "Send to": "Senden an",
+  "Send to farmers": "An Farmer senden",
+  "Settings": "Einstellungen",
+  "Sheep": "Schafe",
+  "Species *": "Art *",
+  "Subject": "Betreff",
+  "Tag number *": "Ohrmarkennummer *",
+  "Tasks": "Aufgaben",
+  "The Future of Namibian Farming": "Die Zukunft der namibischen Landwirtschaft",
+  "TFNN — The Future of Namibian Farming": "TFNN — Die Zukunft der namibischen Landwirtschaft",
+  "Upload a .csv or .xlsx file. You'll match its columns to TFNN fields on the next screen — nothing imports until you confirm.": "Laden Sie eine .csv- oder .xlsx-Datei hoch. Auf dem nächsten Bildschirm ordnen Sie die Spalten den TFNN-Feldern zu — nichts wird importiert, bevor Sie bestätigen.",
+  "Valuation": "Bewertung",
+  "Value": "Wert",
+  "Vet": "Tierarzt",
+  "Waking up the server — the first open can take up to a minute…": "Server wird gestartet — das erste Öffnen kann bis zu einer Minute dauern…",
+  "What happened?": "Was ist passiert?",
+  "Which animal?": "Welches Tier?",
+  "You haven't listed anything yet.": "Sie haben noch nichts angeboten.",
+  "Your listings": "Ihre Angebote",
+  "about 25 for a mature bull, about 15 for a bull under 2 years. Use more bulls on rough, large camps.": "etwa 25 für einen ausgewachsenen Bullen, etwa 15 für einen Bullen unter 2 Jahren. Setzen Sie auf rauen, großen Weidekoppeln mehr Bullen ein.",
+  "breeding soundness exam by your vet (checks semen, testicles, sheath, feet and legs). Vaccinate and deworm. Check feet and body condition. Aim for a score of 6 to 7 out of 9.": "Zuchttauglichkeitsuntersuchung durch Ihren Tierarzt (prüft Sperma, Hoden, Vorhaut, Füße und Beine). Impfen und entwurmen. Füße und Körperkondition prüfen. Ziel ist eine Note von 6 bis 7 von 9.",
+  "from cows outside the season, and from each other if they fight.": "von den Kühen außerhalb der Deckzeit und voneinander, wenn sie kämpfen.",
+  "keep them apart for 30 days and have your vet check them for venereal diseases (trichomonosis, vibriosis) and brucellosis before they join your cows.": "halten Sie sie 30 Tage getrennt und lassen Sie sie vom Tierarzt auf Deckseuchen (Trichomonose, Vibriose) und Brucellose untersuchen, bevor sie zu Ihren Kühen kommen.",
+  "take him out of the herd, record it, and rest him for about 2 months. Feed him back up to condition.": "nehmen Sie ihn aus der Herde, erfassen Sie es und lassen Sie ihn etwa 2 Monate ruhen. Füttern Sie ihn wieder auf Kondition.",
+  "tap to open": "zum Öffnen tippen",
+  "watch every bull weekly. Look for lameness, injuries, and bulls that are not working. Keep water and licks good. Swap out any bull that goes lame.": "kontrollieren Sie jeden Bullen wöchentlich. Achten Sie auf Lahmheit, Verletzungen und Bullen, die nicht decken. Halten Sie Wasser und Lecksteine in gutem Zustand. Tauschen Sie lahme Bullen aus.",
+  "your whole herd from a spreadsheet.": "Ihre ganze Herde aus einer Tabelle.",
+  "— Not set —": "— Nicht festgelegt —",
+  "← Back": "← Zurück",
+  "🎙️ Voice note": "🎙️ Sprachnotiz",
+  "🐂 Bull care": "🐂 Bullenpflege",
+  "📄 Import": "📄 Import",
+  "📅 Season calendar": "📅 Saisonkalender",
+  "📷 Add / update photo": "📷 Foto hinzufügen / ändern",
+  "📷 Add photo": "📷 Foto hinzufügen",
+  "🔔 Enable push notifications on this device": "🔔 Push-Benachrichtigungen auf diesem Gerät aktivieren",
+  "e.g. 0142": "z. B. 0142",
+  "e.g. Brahman, Dorper, Boer": "z. B. Brahman, Dorper, Boer",
+  "e.g. anthrax booster": "z. B. Milzbrand-Auffrischung",
+  "e.g. good condition, dewormed last month": "z. B. gute Kondition, letzten Monat entwurmt",
+  "Quick log": "Schnell erfassen",
+  "Language": "Sprache",
+  "Cow": "Kuh",
+  "Heifer": "Färse",
+  "Steer": "Ochse",
+  "Calf": "Kalb",
+  "Ewe": "Mutterschaf",
+  "Ram": "Widder",
+  "Lamb": "Lamm",
+  "Wether": "Hammel",
+  "Doe": "Ziege (weiblich)",
+  "Buck": "Bock",
+  "Kid": "Zicklein",
+  "Born": "Geboren",
+  "Vaccinated": "Geimpft",
+  "Sick / Treated": "Krank / Behandelt",
+  "Fed": "Gefüttert",
+  "Sold": "Verkauft",
+  "Moved Farm": "Farm gewechselt",
+  "Died": "Verendet",
+  "Bought": "Gekauft",
+  "Breeding Soundness Exam": "Zuchttauglichkeitsuntersuchung",
+  "Joined Herd": "Zur Herde gegeben",
+  "Removed from Herd": "Aus der Herde genommen",
+  "Body Condition Score": "Körperkonditionsnote",
+  "Hoof / Foot Care": "Klauen- / Fußpflege",
+  "Dosed / Dewormed": "Gedrencht / Entwurmt",
+  "Dipped / Tick Control": "Gebadet / Zeckenbekämpfung",
+  "Active": "Aktiv",
+  "Expired": "Abgelaufen",
+  "Cancelled": "Storniert",
+  "January": "Januar",
+  "February": "Februar",
+  "March": "März",
+  "April": "April",
+  "May": "Mai",
+  "June": "Juni",
+  "July": "Juli",
+  "August": "August",
+  "September": "September",
+  "October": "Oktober",
+  "November": "November",
+  "December": "Dezember",
+  "Rainy season": "Regenzeit",
+  "Autumn — rains ending": "Herbst — Regenzeit endet",
+  "Autumn — start of winter": "Herbst — Winteranfang",
+  "Cold dry winter": "Kalter trockener Winter",
+  "Late winter — dry": "Spätwinter — trocken",
+  "Hot dry build-up": "Heiße trockene Vorregenzeit",
+  "First rains": "Erste Regenfälle",
+  "Green grass, flies, ticks and worms. Peak time for breeding and for tick-borne disease.": "Grünes Gras, Fliegen, Zecken und Würmer. Hauptzeit für die Zucht und für zeckenübertragene Krankheiten.",
+  "Grass is at its best. Time to wean, pregnancy-test and plan winter feed.": "Das Gras ist am besten. Zeit zum Absetzen, für Trächtigkeitstests und zur Planung des Winterfutters.",
+  "Grass loses its protein. Supplement feed, protect young stock from cold and guard against veld fires.": "Das Gras verliert sein Eiweiß. Zufüttern, Jungtiere vor Kälte schützen und Buschfeuer vorbeugen.",
+  "Feed is at its shortest. Get bulls fit and book the vet before breeding.": "Das Futter ist am knappsten. Bullen in Form bringen und den Tierarzt vor der Deckzeit bestellen.",
+  "Hot, dry and tough on stock. Calving begins and pre-rain vaccinations are due.": "Heiß, trocken und hart für die Tiere. Die Kalbezeit beginnt und die Impfungen vor der Regenzeit sind fällig.",
+  "Fresh green flush can cause bloat. Join the bulls when the rains are established.": "Frisches grünes Gras kann Blähungen verursachen. Bullen zur Herde geben, wenn die Regenzeit eingesetzt hat.",
+  "Check for ticks and tick-borne disease": "Auf Zecken und zeckenübertragene Krankheiten prüfen",
+  "Redwater and gallsickness risk is high after rain. Dip or spray as your vet advises.": "Nach Regen ist das Risiko für Rotwasser und Gallenkrankheit hoch. Baden oder sprühen Sie nach Anweisung Ihres Tierarztes.",
+  "Keep the phosphate or summer lick out": "Phosphat- oder Sommerlecke bereitstellen",
+  "Needed all through the green season.": "Während der gesamten grünen Jahreszeit nötig.",
+  "Check fences and water points after storms": "Zäune und Wasserstellen nach Unwettern prüfen",
+  "Check every bull weekly": "Jeden Bullen wöchentlich prüfen",
+  "Look at feet, legs, condition and whether he is working.": "Auf Füße, Beine, Kondition achten und darauf, ob er deckt.",
+  "Heifer calves: brucellosis vaccination": "Färsenkälber: Brucellose-Impfung",
+  "Heifers 4 to 8 months, where your state vet requires it.": "Färsen von 4 bis 8 Monaten, wo Ihr staatlicher Veterinär es verlangt.",
+  "Deworm young stock": "Jungtiere entwurmen",
+  "Worms peak in wet weather.": "Würmer treten bei nassem Wetter am stärksten auf.",
+  "Take bulls out about 90 days after joining": "Bullen etwa 90 Tage nach dem Zusammenführen herausnehmen",
+  "Record \"Removed from Herd\" in the Bull care tab.": "Erfassen Sie „Aus der Herde genommen“ im Reiter Bullenpflege.",
+  "Weigh and record calves": "Kälber wiegen und erfassen",
+  "Deworm and dip after the rains": "Nach der Regenzeit entwurmen und baden",
+  "Ask your vet which products suit your area.": "Fragen Sie Ihren Tierarzt, welche Mittel für Ihre Gegend geeignet sind.",
+  "Book pregnancy testing": "Trächtigkeitsuntersuchung bestellen",
+  "Do it about 60 to 90 days after the bulls came out.": "Etwa 60 bis 90 Tage nach dem Herausnehmen der Bullen durchführen.",
+  "Pregnancy-test cows and cull the empties": "Kühe auf Trächtigkeit testen und güste Tiere aussortieren",
+  "Empty cows eat winter feed for nothing.": "Güste Kühe fressen das Winterfutter umsonst.",
+  "Wean calves of 6 to 8 months": "Kälber von 6 bis 8 Monaten absetzen",
+  "Wean the oldest or lightest cow first if she is thin.": "Setzen Sie bei einer mageren Kuh zuerst das älteste oder leichteste Kalb ab.",
+  "Count your hay and winter feed": "Heu und Winterfutter zählen",
+  "Plan what you will buy before prices rise.": "Planen Sie Ihre Einkäufe, bevor die Preise steigen.",
+  "Cut fire breaks": "Brandschneisen anlegen",
+  "Do it before the grass dries out.": "Tun Sie es, bevor das Gras austrocknet.",
+  "Start winter protein lick": "Winter-Proteinlecke beginnen",
+  "Dry grass is low in protein; stock lose condition without it.": "Trockenes Gras enthält wenig Eiweiß; die Tiere verlieren ohne Lecke an Kondition.",
+  "Shelter lambs, kids and weak calves from cold nights": "Lämmer, Zicklein und schwache Kälber vor kalten Nächten schützen",
+  "Score body condition of the whole herd": "Körperkondition der ganzen Herde bewerten",
+  "Feed thin animals first.": "Magere Tiere zuerst füttern.",
+  "Check water troughs and pipes": "Wassertröge und Leitungen prüfen",
+  "Make sure animals can drink on cold mornings.": "Sorgen Sie dafür, dass die Tiere an kalten Morgen trinken können.",
+  "Book the vet for bull breeding soundness exams": "Tierarzt für die Zuchttauglichkeitsuntersuchung der Bullen bestellen",
+  "Do them 30 to 60 days before the breeding season.": "30 bis 60 Tage vor der Deckzeit durchführen.",
+  "Start feeding bulls up to condition 6 to 7": "Bullen auf Kondition 6 bis 7 auffüttern",
+  "Fat is not the aim; fit is.": "Fett ist nicht das Ziel; fit ist es.",
+  "Watch for veld fires": "Auf Buschfeuer achten",
+  "Breeding soundness exam for every bull": "Zuchttauglichkeitsuntersuchung für jeden Bullen",
+  "Mark the result in the Bull care tab.": "Tragen Sie das Ergebnis im Reiter Bullenpflege ein.",
+  "Pre-rain vaccinations: anthrax and botulism": "Impfungen vor der Regenzeit: Milzbrand und Botulismus",
+  "Do these before the rains start; ask your vet which are needed in your area.": "Vor Beginn der Regenzeit durchführen; fragen Sie Ihren Tierarzt, welche in Ihrer Gegend nötig sind.",
+  "Watch heifers closely for calving": "Färsen zur Kalbung genau beobachten",
+  "Heifers need the most help.": "Färsen brauchen die meiste Hilfe.",
+  "Record new calves as \"Born\"": "Neue Kälber als „Geboren“ erfassen",
+  "Tag them soon after birth.": "Markieren Sie sie bald nach der Geburt mit Ohrmarken.",
+  "Treat calf navels at birth": "Kälbernabel bei der Geburt behandeln",
+  "Dip or spray with iodine.": "Mit Jod eintauchen oder besprühen.",
+  "Finish bull vaccinations and deworming": "Impfungen und Entwurmung der Bullen abschließen",
+  "Before they join the cows.": "Bevor sie zu den Kühen kommen.",
+  "Watch for bloat when the first green grass comes": "Auf Blähungen achten, wenn das erste grüne Gras kommt",
+  "Do not put hungry cattle on lush green lands.": "Lassen Sie hungrige Rinder nicht auf saftig grüne Weiden.",
+  "Check bull condition and feet before joining": "Kondition und Füße der Bullen vor dem Zusammenführen prüfen",
+  "Join the bulls (about 1 bull to 25 cows)": "Bullen zur Herde geben (etwa 1 Bulle auf 25 Kühe)",
+  "Record \"Joined Herd\" in the Bull care tab. Use fewer cows for young bulls.": "Erfassen Sie „Zur Herde gegeben“ im Reiter Bullenpflege. Geben Sie jungen Bullen weniger Kühe.",
+  "Start tick control for the wet season": "Zeckenbekämpfung für die Regenzeit beginnen",
+  "No exam on record": "Keine Untersuchung erfasst",
+  "Exam OK": "Untersuchung bestanden",
+  "Exam due soon": "Untersuchung bald fällig",
+  "Exam overdue": "Untersuchung überfällig",
+  "Exam FAILED": "Untersuchung NICHT BESTANDEN",
+  "Exam deferred": "Untersuchung verschoben",
+  "Not joined": "Nicht bei der Herde",
+  "Bulls and cows": "Bullen und Kühe",
+  "Log care": "Pflege erfassen",
+  "Take out of herd": "Aus der Herde nehmen",
+  "Join with cows": "Zu den Kühen geben",
+  "Account created — pending approval.": "Konto erstellt — wartet auf Freigabe.",
+  "Added ✓": "Hinzugefügt ✓",
+  "Added": "Hinzugefügt",
+  "Saved offline": "Offline gespeichert",
+  "Saved offline — will sync when back online": "Offline gespeichert — wird bei Verbindung synchronisiert",
+  "Back online — syncing…": "Wieder online — synchronisiere…",
+  "No connection — saved on this phone, will sync when online": "Keine Verbindung — auf diesem Telefon gespeichert, wird bei Verbindung synchronisiert",
+  "Please enter the tag number.": "Bitte geben Sie die Ohrmarkennummer ein.",
+  "Date of birth cannot be in the future.": "Das Geburtsdatum darf nicht in der Zukunft liegen.",
+  "Expense saved": "Ausgabe gespeichert",
+  "Sale recorded": "Verkauf erfasst",
+  "Listing published": "Angebot veröffentlicht",
+  "Listing cancelled": "Angebot zurückgezogen",
+  "Photo saved": "Foto gespeichert",
+  "Settings saved": "Einstellungen gespeichert",
+  "Thanks": "Danke",
+  "Session expired": "Sitzung abgelaufen",
+  "Your session expired — please log in again.": "Ihre Sitzung ist abgelaufen — bitte melden Sie sich erneut an.",
+  "Price on request": "Preis auf Anfrage",
+  "Permission not granted": "Berechtigung nicht erteilt",
+  "Push notifications enabled on this device": "Push-Benachrichtigungen auf diesem Gerät aktiviert",
+  "Push notifications are not supported on this browser": "Push-Benachrichtigungen werden von diesem Browser nicht unterstützt",
+  "Push is not configured on the server yet": "Push ist auf dem Server noch nicht eingerichtet",
+  "Type the phone number first": "Geben Sie zuerst die Telefonnummer ein",
+  "That file has no data rows": "Diese Datei enthält keine Datenzeilen",
+  "Tag number and species must both be mapped": "Ohrmarkennummer und Art müssen beide zugeordnet werden",
+  "Buyer phone and final price are required": "Telefon des Käufers und Endpreis sind erforderlich",
+  "Could not load media": "Medien konnten nicht geladen werden",
+  "Tag number": "Ohrmarkennummer",
+  "Species": "Art",
+  "Select…": "Auswählen…",
+  "During breeding:": "Während der Deckzeit:",
+  "I have paid": "Ich habe bezahlt",
+  "Payment reference:": "Zahlungsreferenz:",
+  "Mark done": "Als erledigt markieren",
+  "Live herd value": "Aktueller Herdenwert",
+  "Sales income": "Verkaufseinnahmen",
+  "Net cash position": "Nettoliquidität",
+  "Welcome to TFNN": "Willkommen bei TFNN",
+  "No breeding soundness exam recorded. Have your vet examine him 30–60 days before breeding.": "Keine Zuchttauglichkeitsuntersuchung erfasst. Lassen Sie ihn 30–60 Tage vor der Deckzeit vom Tierarzt untersuchen.",
+  "Failed his last breeding soundness exam — do not use until re-tested and passed.": "Letzte Zuchttauglichkeitsuntersuchung nicht bestanden — nicht einsetzen, bis er erneut getestet wurde und bestanden hat.",
+  "Breeding soundness exam due soon — book your vet before the next season.": "Zuchttauglichkeitsuntersuchung bald fällig — bestellen Sie Ihren Tierarzt vor der nächsten Saison.",
+  "Exam was deferred — re-test before breeding.": "Untersuchung wurde verschoben — vor der Deckzeit erneut testen.",
+  "Score his body condition again — it is over 60 days old.": "Bewerten Sie seine Körperkondition erneut — die letzte Bewertung ist über 60 Tage alt.",
+  "Vaccinations not recorded in the last year.": "Im letzten Jahr keine Impfungen erfasst.",
+  "No deworming recorded in the last 6 months.": "In den letzten 6 Monaten keine Entwurmung erfasst.",
+  "Add your cows and heifers (class Cow / Heifer) to see how many bulls you need.": "Fügen Sie Ihre Kühe und Färsen (Klasse Kuh / Färse) hinzu, um zu sehen, wie viele Bullen Sie brauchen."
+ },
+ "patterns": [
+  [
+   "^(\\d+) open$",
+   "$1 offen"
+  ],
+  [
+   "^(\\d+) animals?$",
+   "$1 Tiere"
+  ],
+  [
+   "^1 bulls?$",
+   "1 Bulle"
+  ],
+  [
+   "^(\\d+) bulls$",
+   "$1 Bullen"
+  ],
+  [
+   "^(\\d+) cows and heifers$",
+   "$1 Kühe und Färsen"
+  ],
+  [
+   "^(\\S+) cows per bull$",
+   "$1 Kühe pro Bulle"
+  ],
+  [
+   "^Your free trial ends in (\\d+) days?\\.$",
+   "Ihre kostenlose Testphase endet in $1 Tagen."
+  ],
+  [
+   "^Your membership renews in (\\d+) days?\\.$",
+   "Ihre Mitgliedschaft verlängert sich in $1 Tagen."
+  ],
+  [
+   "^Your membership has expired\\. You can still view your records\\.$",
+   "Ihre Mitgliedschaft ist abgelaufen. Sie können Ihre Aufzeichnungen weiterhin ansehen."
+  ],
+  [
+   "^See how to pay$",
+   "So bezahlen Sie"
+  ],
+  [
+   "^Renew$",
+   "Verlängern"
+  ],
+  [
+   "^Active until (\\S+)$",
+   "Aktiv bis $1"
+  ],
+  [
+   "^Free trial, (\\d+) days left$",
+   "Kostenlose Testphase, noch $1 Tage"
+  ],
+  [
+   "^Monthly fee: (N\\$[\\d,.]+) · Registration fee \\(once\\): (N\\$[\\d,.]+)$",
+   "Monatsgebühr: $1 · Registrierungsgebühr (einmalig): $2"
+  ],
+  [
+   "^Monthly fee: (N\\$[\\d,.]+)$",
+   "Monatsgebühr: $1"
+  ],
+  [
+   "^Due now: (N\\$[\\d,.]+)$",
+   "Jetzt fällig: $1"
+  ],
+  [
+   "^Payment reference: (.+)$",
+   "Zahlungsreferenz: $1"
+  ],
+  [
+   "^Marketplace fee: (\\S+)% of the sale price\\.$",
+   "Marktplatzgebühr: $1 % des Verkaufspreises."
+  ],
+  [
+   "^Small farmer$",
+   "Kleinfarmer"
+  ],
+  [
+   "^Big farm$",
+   "Großfarm"
+  ],
+  [
+   "^Big farm \\(300\\+ animals\\)$",
+   "Großfarm (300+ Tiere)"
+  ],
+  [
+   "^Supplier$",
+   "Lieferant"
+  ],
+  [
+   "^Out of herd (\\d+) days$",
+   "Seit $1 Tagen aus der Herde"
+  ],
+  [
+   "^With cows (\\d+) days$",
+   "Seit $1 Tagen bei den Kühen"
+  ],
+  [
+   "^Saved: (.+) for (.+)$",
+   "Gespeichert: $1 für $2"
+  ],
+  [
+   "^Logged: (.+) for (.+)$",
+   "Erfasst: $1 für $2"
+  ],
+  [
+   "^Your bulls can cover about (\\d+) cows; you have (\\d+)\\. Good\\.$",
+   "Ihre Bullen können etwa $1 Kühe decken; Sie haben $2. Gut."
+  ],
+  [
+   "^You have (\\d+) breeding females and no bulls recorded\\. You need about (\\d+) mature bull\\(s\\)\\.$",
+   "Sie haben $1 Zuchtweibchen und keine Bullen erfasst. Sie brauchen etwa $2 ausgewachsene(n) Bullen."
+  ],
+  [
+   "^(\\d+) breeding females is more than your bulls can cover \\(about (\\d+)\\)\\. Add another bull, or conception rates will suffer\\.$",
+   "$1 Zuchtweibchen sind mehr, als Ihre Bullen decken können (etwa $2). Fügen Sie einen weiteren Bullen hinzu, sonst sinkt die Trächtigkeitsrate."
+  ],
+  [
+   "^Breeding soundness exam is overdue \\((\\d+) days ago\\)\\.$",
+   "Zuchttauglichkeitsuntersuchung ist überfällig (vor $1 Tagen)."
+  ],
+  [
+   "^Has been with the cows (\\d+) days\\. Take him out after about 90 days so calving stays tight\\.$",
+   "Ist seit $1 Tagen bei den Kühen. Nehmen Sie ihn nach etwa 90 Tagen heraus, damit die Kalbungen zeitlich eng bleiben."
+  ],
+  [
+   "^Resting — (\\d+) more days to regain condition before the next season\\.$",
+   "Ruhephase — noch $1 Tage, um vor der nächsten Saison wieder zu Kräften zu kommen."
+  ],
+  [
+   "^Body condition (\\d+)/9 is thin — feed him up before and during breeding\\.$",
+   "Körperkondition $1/9 ist mager — füttern Sie ihn vor und während der Deckzeit auf."
+  ],
+  [
+   "^Body condition (\\d+)/9 is very fat — fat bulls breed poorly and go lame\\.$",
+   "Körperkondition $1/9 ist sehr fett — fette Bullen decken schlecht und werden lahm."
+  ],
+  [
+   "^Young bull \\((\\d+) months\\): give him fewer cows \\(about 15\\) and let him finish growing\\.$",
+   "Junger Bulle ($1 Monate): geben Sie ihm weniger Kühe (etwa 15) und lassen Sie ihn fertig wachsen."
+  ],
+  [
+   "^Condition (\\d+)/9$",
+   "Kondition $1/9"
+  ],
+  [
+   "^(\\d+)y (\\d+)m$",
+   "$1 J. $2 M."
+  ],
+  [
+   "^Bull (.+)$",
+   "Bulle $1"
+  ],
+  [
+   "^(.+) Cattle$",
+   "$1 Rinder"
+  ],
+  [
+   "^(.+) Sheep$",
+   "$1 Schafe"
+  ],
+  [
+   "^(.+) Goat$",
+   "$1 Ziegen"
+  ],
+  [
+   "^(\\d+) active animals?$",
+   "$1 aktive Tiere"
+  ],
+  [
+   "^1 sales?$",
+   "1 Verkauf"
+  ],
+  [
+   "^(\\d+) sales$",
+   "$1 Verkäufe"
+  ],
+  [
+   "^1 expenses?$",
+   "1 Ausgabe"
+  ],
+  [
+   "^(\\d+) expenses$",
+   "$1 Ausgaben"
+  ],
+  [
+   "^· Free trial, (\\d+) days left$",
+   "· Kostenlose Testphase, noch $1 Tage"
+  ],
+  [
+   "^· Active until (\\S+)$",
+   "· Aktiv bis $1"
+  ],
+  [
+   "^· Expired$",
+   "· Abgelaufen"
+  ]
+ ]
+}
