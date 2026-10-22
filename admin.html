@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>TFNN Admin</title>
+<style>
+  :root { --green:#1f6b3a; --green-d:#15502a; --ink:#1c2321; --mute:#6b7571; --line:#dfe5e1; --bg:#f4f6f4; --card:#fff; --red:#b3261e; --amber:#b26a00; --blue:#1d4f91; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.4 -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { position:sticky; top:0; z-index:5; background:var(--green); color:#fff; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; }
+  header h1 { font-size:1.05rem; margin:0; }
+  header small { opacity:.85; display:block; font-weight:400; font-size:.75rem; }
+  header button { background:rgba(255,255,255,.18); color:#fff; border:0; border-radius:8px; padding:7px 12px; font-size:.85rem; }
+  nav { display:flex; background:#fff; border-bottom:1px solid var(--line); position:sticky; top:52px; z-index:4; overflow-x:auto; }
+  nav button { flex:1; min-width:84px; background:none; border:0; padding:12px 8px; font-size:.9rem; color:var(--mute); border-bottom:3px solid transparent; }
+  nav button.on { color:var(--green); border-bottom-color:var(--green); font-weight:600; }
+  main { padding:14px; max-width:760px; margin:0 auto; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:12px; }
+  .card h2 { font-size:1rem; margin:0 0 10px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .stat { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; }
+  .stat b { display:block; font-size:1.5rem; color:var(--green); }
+  .stat span { color:var(--mute); font-size:.8rem; }
+  input, select, textarea { width:100%; padding:11px; border:1px solid var(--line); border-radius:9px; font:inherit; background:#fff; margin-bottom:9px; }
+  textarea { min-height:100px; resize:vertical; }
+  label { font-size:.8rem; color:var(--mute); display:block; margin:0 0 3px; }
+  .btn { background:var(--green); color:#fff; border:0; border-radius:9px; padding:11px 14px; font:inherit; font-weight:600; width:100%; }
+  .btn.sm { width:auto; padding:7px 12px; font-size:.85rem; }
+  .btn.red { background:var(--red); } .btn.grey { background:#e8ece9; color:var(--ink); } .btn.blue { background:var(--blue); }
+  .btn:disabled { opacity:.55; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .chips { display:flex; gap:6px; overflow-x:auto; margin-bottom:10px; padding-bottom:2px; }
+  .chip { white-space:nowrap; background:#fff; border:1px solid var(--line); border-radius:99px; padding:6px 12px; font-size:.82rem; color:var(--ink); }
+  .chip.on { background:var(--green); color:#fff; border-color:var(--green); }
+  .badge { display:inline-block; font-size:.7rem; padding:2px 8px; border-radius:99px; background:#e8ece9; margin-left:4px; vertical-align:middle; }
+  .badge.vet { background:#dbe8fb; color:var(--blue); } .badge.supplier { background:#fdebc8; color:var(--amber); }
+  .badge.admin { background:#e9dcf7; color:#5b2d91; } .badge.farmer { background:#dcf0e3; color:var(--green-d); }
+  .badge.bad { background:#f9d9d6; color:var(--red); } .badge.wait { background:#fdebc8; color:var(--amber); }
+  .u-name { font-weight:600; } .u-sub { color:var(--mute); font-size:.82rem; }
+  .msg { padding:10px 12px; border-radius:9px; margin-bottom:10px; font-size:.88rem; }
+  .msg.err { background:#f9d9d6; color:var(--red); } .msg.ok { background:#dcf0e3; color:var(--green-d); }
+  .empty { color:var(--mute); text-align:center; padding:18px 0; }
+  .login { max-width:380px; margin:12vh auto 0; padding:0 16px; }
+  .login h1 { color:var(--green); text-align:center; margin-bottom:4px; } .login p { text-align:center; color:var(--mute); margin-top:0; }
+  table { width:100%; border-collapse:collapse; font-size:.85rem; } td, th { text-align:left; padding:6px 4px; border-bottom:1px solid var(--line); }
+  .hide { display:none !important; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-view" class="login">
+  <h1>TFNN Admin</h1>
+  <p>Sign in with your admin account</p>
+  <div id="login-msg"></div>
+  <label>Phone number</label>
+  <input id="l-phone" type="tel" autocomplete="username" placeholder="e.g. 0811234567">
+  <label>Password</label>
+  <input id="l-pass" type="password" autocomplete="current-password">
+  <button class="btn" id="l-btn">Sign in</button>
+  <p style="font-size:.78rem; margin-top:14px;">The server can take up to a minute to wake up on the first request.</p>
+</div>
+
+<!-- APP -->
+<div id="app-view" class="hide">
+  <header><h1>TFNN Admin <small id="who"></small></h1><button id="logout">Log out</button></header>
+  <nav id="tabs">
+    <button data-tab="overview" class="on">Overview</button>
+    <button data-tab="users">Users</button>
+    <button data-tab="billing">Billing</button>
+    <button data-tab="messages">Messages</button>
+  </nav>
+  <main>
+    <div id="flash"></div>
+
+    <section id="tab-overview">
+      <div class="grid" id="stat-grid"></div>
+      <div class="card" style="margin-top:12px;"><h2>Waiting for approval</h2><div id="pending-box"><div class="empty">Loading…</div></div></div>
+      <div class="card"><h2>Herd by species</h2><div id="herd-box"></div></div>
+      <div class="card"><h2>Vet requests</h2><div id="vetreq-box"></div></div>
+      <div class="card"><h2>Feed orders</h2><div id="orders-box"></div></div>
+    </section>
+
+    <section id="tab-users" class="hide">
+      <input id="u-search" placeholder="Search name or phone…">
+      <div class="chips" id="u-chips">
+        <button class="chip on" data-f="all">All</button>
+        <button class="chip" data-f="pending">Pending</button>
+        <button class="chip" data-f="vet">Vets</button>
+        <button class="chip" data-f="supplier">Suppliers</button>
+        <button class="chip" data-f="farmer">Farmers</button>
+        <button class="chip" data-f="admin">Admins</button>
+        <button class="chip" data-f="suspended">Suspended</button>
+      </div>
+      <div id="u-list"><div class="empty">Loading…</div></div>
+    </section>
+
+    <section id="tab-billing" class="hide">
+      <div class="grid" id="bill-totals"></div>
+      <div class="card" style="margin-top:12px;">
+        <h2>Record a payment</h2>
+        <label>Member's phone number</label><input id="p-phone" type="tel" placeholder="Phone used to register">
+        <label>Type</label>
+        <select id="p-kind"><option value="registration">Registration fee</option><option value="membership">Membership (monthly)</option></select>
+        <div id="p-months-wrap" class="hide"><label>Months paid</label><input id="p-months" type="number" min="1" max="24" value="1"></div>
+        <button class="btn" id="p-btn">Record payment</button>
+      </div>
+      <div class="card"><h2>Say they have paid</h2><div id="claims-box"><div class="empty">Loading…</div></div></div>
+      <div class="card"><h2>Expiring within 7 days</h2><div id="expiring-box"></div></div>
+      <div class="card"><h2>Recent payments</h2><div id="recent-box"></div></div>
+    </section>
+
+    <section id="tab-messages" class="hide">
+      <div class="card">
+        <h2>Message farmers</h2>
+        <label>District (leave blank for all farmers)</label><select id="b-district"><option value="">All districts</option></select>
+        <label>Subject</label><input id="b-subject" maxlength="120">
+        <label>Message</label><textarea id="b-message" maxlength="5000"></textarea>
+        <button class="btn" id="b-btn">Send to farmers</button>
+      </div>
+      <div class="card">
+        <h2>Post a disease / district alert</h2>
+        <label>District</label><select id="a-district"></select>
+        <label>Severity</label><select id="a-sev"><option>Advisory</option><option>Warning</option><option>Emergency</option></select>
+        <label>Title</label><input id="a-title">
+        <label>Details</label><textarea id="a-desc"></textarea>
+        <button class="btn red" id="a-btn">Post alert</button>
+      </div>
+      <div class="card">
+        <h2>Email check</h2>
+        <div id="email-status" style="font-size:.85rem; margin-bottom:8px;">Loading…</div>
+        <button class="btn grey" id="t-btn">Send me a test email</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const API_BASE = 'https://tfnn-1.onrender.com/api/v1';
+const SESSION_KEY = 'tfnn_admin_session';
+const DISTRICTS = ['Erongo','Hardap','ǁKaras','Kavango East','Kavango West','Khomas','Kunene','Ohangwena','Omaheke','Omusati','Oshana','Oshikoto','Otjozondjupa','Zambezi'];
+let token = null, refreshToken = null, me = null, users = [], filter = 'all';
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtDate = (d) => d ? String(d).slice(0, 10) : '—';
+const money = (n) => 'N$ ' + Number(n || 0).toLocaleString('en', { maximumFractionDigits: 2 });
+
+function flash(text, ok) {
+  $('flash').innerHTML = '<div class="msg ' + (ok ? 'ok' : 'err') + '">' + esc(text) + '</div>';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  setTimeout(() => { $('flash').innerHTML = ''; }, 7000);
+}
+function save() { try { localStorage.setItem(SESSION_KEY, JSON.stringify({ refresh_token: refreshToken, user: me })); } catch (e) {} }
+function load() { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch (e) { return null; } }
+function clearSession() { try { localStorage.removeItem(SESSION_KEY); } catch (e) {} token = refreshToken = me = null; }
+
+async function refresh() {
+  if (!refreshToken) return false;
+  try {
+    const r = await fetch(API_BASE + '/auth/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh_token: refreshToken }) });
+    if (!r.ok) return false;
+    token = (await r.json()).token; return true;
+  } catch (e) { return false; }
+}
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers.Authorization = 'Bearer ' + token;
+  let res;
+  try { res = await fetch(API_BASE + path, { method: opts.method || 'GET', headers, body: opts.body ? JSON.stringify(opts.body) : undefined }); }
+  catch (e) { throw new Error('Cannot reach the server. Check your internet and try again.'); }
+  if (res.status === 401 && token && !opts._retry && path.indexOf('/auth/') !== 0) {
+    if (await refresh()) return api(path, Object.assign({}, opts, { _retry: true }));
+    showLogin('Session expired — please sign in again.'); throw new Error('Session expired');
+  }
+  let data = {}; try { data = await res.json(); } catch (e) {}
+  if (!res.ok) throw new Error(data.error || ('Request failed (' + res.status + ')'));
+  return data;
+}
+
+// ---------- login ----------
+function showLogin(msg) {
+  clearSession();
+  $('app-view').classList.add('hide'); $('login-view').classList.remove('hide');
+  $('login-msg').innerHTML = msg ? '<div class="msg err">' + esc(msg) + '</div>' : '';
+}
+$('l-btn').addEventListener('click', async () => {
+  const phone = $('l-phone').value.trim(), password = $('l-pass').value;
+  if (!phone || !password) { $('login-msg').innerHTML = '<div class="msg err">Enter your phone and password.</div>'; return; }
+  const b = $('l-btn'); b.disabled = true; b.textContent = 'Signing in…';
+  try {
+    const d = await api('/auth/login', { method: 'POST', body: { phone, password } });
+    if (!d.user || d.user.role !== 'admin') { $('login-msg').innerHTML = '<div class="msg err">This account is not an admin.</div>'; return; }
+    token = d.token; refreshToken = d.refresh_token; me = d.user; save(); $('l-pass').value = '';
+    start();
+  } catch (e) { $('login-msg').innerHTML = '<div class="msg err">' + esc(e.message) + '</div>'; }
+  finally { b.disabled = false; b.textContent = 'Sign in'; }
+});
+$('logout').addEventListener('click', () => showLogin());
+
+function start() {
+  $('login-view').classList.add('hide'); $('app-view').classList.remove('hide');
+  $('who').textContent = me ? me.name : '';
+  loadOverview(); loadUsers();
+}
+
+// ---------- tabs ----------
+$('tabs').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b));
+  ['overview', 'users', 'billing', 'messages'].forEach(t => $('tab-' + t).classList.toggle('hide', t !== b.dataset.tab));
+  if (b.dataset.tab === 'billing') loadBilling();
+  if (b.dataset.tab === 'messages') loadEmailStatus();
+  if (b.dataset.tab === 'overview') loadOverview();
+  window.scrollTo(0, 0);
+});
+
+// ---------- overview ----------
+function simpleTable(rows, cols) {
+  if (!rows || !rows.length) return '<div class="empty">Nothing yet</div>';
+  return '<table>' + rows.map(r => '<tr>' + cols.map(c => '<td>' + esc(r[c]) + '</td>').join('') + '</tr>').join('') + '</table>';
+}
+async function loadOverview() {
+  try {
+    const [s, p] = await Promise.all([api('/admin/stats'), api('/admin/users/pending')]);
+    const pend = p.users || [];
+    const herd = (s.herd_by_species || []).reduce((a, r) => a + r.count, 0);
+    $('stat-grid').innerHTML =
+      '<div class="stat"><b>' + pend.length + '</b><span>Waiting for approval</span></div>' +
+      '<div class="stat"><b>' + herd + '</b><span>Active animals</span></div>' +
+      '<div class="stat"><b>' + (users.length || '…') + '</b><span>Total users</span></div>' +
+      '<div class="stat"><b>' + (s.vet_requests_by_urgency_and_status || []).reduce((a, r) => a + r.count, 0) + '</b><span>Vet requests</span></div>';
+    $('pending-box').innerHTML = pend.length ? pend.map(u =>
+      '<div style="padding:8px 0; border-bottom:1px solid var(--line);"><span class="u-name">' + esc(u.name) + '</span><span class="badge ' + esc(u.role) + '">' + esc(u.role) + '</span>' +
+      '<div class="u-sub">' + esc(u.phone) + ' · ' + esc(u.farm_location || 'no location') + ' · joined ' + fmtDate(u.created_at) + '</div>' +
+      '<div class="row"><button class="btn sm" data-approve="' + u.user_id + '">Approve</button><button class="btn sm red" data-reject="' + u.user_id + '">Reject</button></div></div>'
+    ).join('') : '<div class="empty">No one is waiting 🎉</div>';
+    $('herd-box').innerHTML = simpleTable(s.herd_by_species, ['species', 'count']);
+    $('vetreq-box').innerHTML = simpleTable(s.vet_requests_by_urgency_and_status, ['urgency', 'status', 'count']);
+    $('orders-box').innerHTML = simpleTable(s.orders_by_status, ['status', 'count']);
+  } catch (e) { flash(e.message); }
+}
+$('pending-box').addEventListener('click', async (e) => {
+  const a = e.target.dataset.approve, r = e.target.dataset.reject;
+  if (a) { await patchUser(a, { approved: true }, 'Account approved. They can now log in.'); loadOverview(); }
+  if (r && confirm('Reject and deactivate this account?')) { await patchUser(r, { active: false }, 'Account rejected.'); loadOverview(); }
+});
+
+// ---------- users ----------
+async function loadUsers() {
+  try { users = (await api('/admin/users')).users || []; renderUsers(); }
+  catch (e) { $('u-list').innerHTML = '<div class="msg err">' + esc(e.message) + '</div>'; }
+}
+function renderUsers() {
+  const q = $('u-search').value.trim().toLowerCase();
+  const list = users.filter(u => {
+    if (filter === 'pending' && u.approved) return false;
+    if (filter === 'suspended' && u.active) return false;
+    if (['vet', 'supplier', 'farmer', 'admin'].includes(filter) && u.role !== filter) return false;
+    return !q || (u.name || '').toLowerCase().includes(q) || (u.phone || '').includes(q);
+  });
+  $('u-list').innerHTML = list.length ? list.map(u => {
+    const isMe = me && u.user_id === me.user_id;
+    return '<div class="card"><div><span class="u-name">' + esc(u.name) + '</span><span class="badge ' + esc(u.role) + '">' + esc(u.role) + '</span>' +
+      (!u.approved ? '<span class="badge wait">pending</span>' : '') + (!u.active ? '<span class="badge bad">suspended</span>' : '') + '</div>' +
+      '<div class="u-sub">' + esc(u.phone) + ' · ' + esc(u.district || u.farm_location || 'no location') + ' · joined ' + fmtDate(u.created_at) + '</div>' +
+      (isMe ? '<div class="u-sub">This is you</div>' :
+      '<div class="row">' +
+        (!u.approved ? '<button class="btn sm" data-act="approve" data-id="' + u.user_id + '">Approve</button>' : '') +
+        (u.active ? '<button class="btn sm red" data-act="suspend" data-id="' + u.user_id + '">Suspend</button>' : '<button class="btn sm blue" data-act="reactivate" data-id="' + u.user_id + '">Reactivate</button>') +
+        '<select data-act="role" data-id="' + u.user_id + '" style="width:auto; margin:0; padding:7px;">' +
+          ['farmer', 'vet', 'supplier', 'admin'].map(r => '<option value="' + r + '"' + (r === u.role ? ' selected' : '') + '>' + r + '</option>').join('') + '</select>' +
+      '</div>') + '</div>';
+  }).join('') : '<div class="empty">No users match</div>';
+}
+async function patchUser(id, body, okMsg) {
+  try { await api('/admin/users/' + id, { method: 'PATCH', body }); flash(okMsg, true); await loadUsers(); }
+  catch (e) { flash(e.message); renderUsers(); }
+}
+$('u-search').addEventListener('input', renderUsers);
+$('u-chips').addEventListener('click', (e) => {
+  const c = e.target.closest('.chip'); if (!c) return;
+  filter = c.dataset.f; document.querySelectorAll('#u-chips .chip').forEach(x => x.classList.toggle('on', x === c)); renderUsers();
+});
+$('u-list').addEventListener('click', (e) => {
+  const act = e.target.dataset.act, id = e.target.dataset.id; if (!act || act === 'role') return;
+  if (act === 'approve') patchUser(id, { approved: true }, 'Account approved. They can now log in.');
+  if (act === 'suspend' && confirm('Suspend this account? They will not be able to log in.')) patchUser(id, { active: false }, 'Account suspended.');
+  if (act === 'reactivate') patchUser(id, { active: true }, 'Account reactivated.');
+});
+$('u-list').addEventListener('change', (e) => {
+  if (e.target.dataset.act !== 'role') return;
+  const id = e.target.dataset.id, role = e.target.value;
+  if (confirm('Change this user\'s role to "' + role + '"?' + (role === 'admin' ? '\n\nAdmins can see and change everything.' : ''))) patchUser(id, { role }, 'Role changed to ' + role + '.');
+  else renderUsers();
+});
+
+// ---------- billing ----------
+async function loadBilling() {
+  try {
+    const d = await api('/admin/billing'), t = d.totals || {};
+    $('bill-totals').innerHTML =
+      '<div class="stat"><b>' + money(t.this_month) + '</b><span>This month</span></div>' +
+      '<div class="stat"><b>' + money(t.last_12_months) + '</b><span>Last 12 months</span></div>';
+    $('claims-box').innerHTML = (d.claims || []).length ? d.claims.map(c =>
+      '<div style="padding:8px 0; border-bottom:1px solid var(--line);"><span class="u-name">' + esc(c.name) + '</span><span class="badge ' + esc(c.role) + '">' + esc(c.role) + '</span>' +
+      '<div class="u-sub">' + esc(c.phone) + ' · claimed ' + fmtDate(c.payment_claimed_at) + '</div>' +
+      '<div class="row"><button class="btn sm grey" data-fill="' + esc(c.phone) + '">Fill payment form</button></div></div>').join('') : '<div class="empty">No pending claims</div>';
+    $('expiring-box').innerHTML = (d.expiring || []).length ? d.expiring.map(x =>
+      '<div style="padding:6px 0; border-bottom:1px solid var(--line);"><span class="u-name">' + esc(x.name) + '</span> <span class="u-sub">' + esc(x.phone) + ' · until ' + fmtDate(x.paid_until) + '</span></div>').join('') : '<div class="empty">None</div>';
+    $('recent-box').innerHTML = (d.recent || []).length ? '<table>' + d.recent.map(r =>
+      '<tr><td>' + fmtDate(r.paid_on) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.kind) + '</td><td>' + money(r.amount) + '</td></tr>').join('') + '</table>' : '<div class="empty">No payments yet</div>';
+  } catch (e) { flash(e.message); }
+}
+$('p-kind').addEventListener('change', () => $('p-months-wrap').classList.toggle('hide', $('p-kind').value !== 'membership'));
+$('claims-box').addEventListener('click', (e) => { if (e.target.dataset.fill) { $('p-phone').value = e.target.dataset.fill; $('p-phone').scrollIntoView({ behavior: 'smooth', block: 'center' }); } });
+$('p-btn').addEventListener('click', async () => {
+  const phone = $('p-phone').value.trim(), kind = $('p-kind').value, months = Number($('p-months').value) || 1;
+  if (!phone) return flash('Enter the member\'s phone number.');
+  if (!confirm('Record ' + (kind === 'membership' ? months + ' month(s) of membership' : 'the registration fee') + ' for ' + phone + '?')) return;
+  const b = $('p-btn'); b.disabled = true;
+  try {
+    const r = await api('/admin/payments', { method: 'POST', body: kind === 'membership' ? { phone, kind, months } : { phone, kind } });
+    flash('Payment recorded for ' + (r.user ? r.user.name : phone) + '.', true); $('p-phone').value = ''; loadBilling();
+  } catch (e) { flash(e.message); } finally { b.disabled = false; }
+});
+
+// ---------- messages ----------
+DISTRICTS.forEach(d => { $('b-district').insertAdjacentHTML('beforeend', '<option>' + esc(d) + '</option>'); $('a-district').insertAdjacentHTML('beforeend', '<option>' + esc(d) + '</option>'); });
+$('b-btn').addEventListener('click', async () => {
+  const subject = $('b-subject').value.trim(), message = $('b-message').value.trim(), district = $('b-district').value;
+  if (!subject || !message) return flash('Add a subject and a message.');
+  if (!confirm('Send this to ' + (district ? 'farmers in ' + district : 'ALL farmers') + '? This cannot be undone.')) return;
+  const b = $('b-btn'); b.disabled = true;
+  try {
+    const r = await api('/admin/broadcast', { method: 'POST', body: { subject, message, district: district || undefined } });
+    flash('Sending to ' + (r.recipients != null ? r.recipients : 'your') + ' farmers in the background.', true); $('b-subject').value = ''; $('b-message').value = '';
+  } catch (e) { flash(e.message); } finally { b.disabled = false; }
+});
+$('a-btn').addEventListener('click', async () => {
+  const body = { district: $('a-district').value, severity: $('a-sev').value, title: $('a-title').value.trim(), description: $('a-desc').value.trim() };
+  if (!body.title) return flash('Give the alert a title.');
+  if (!confirm('Post this ' + body.severity + ' alert for ' + body.district + '? Farmers there will be notified.')) return;
+  const b = $('a-btn'); b.disabled = true;
+  try { await api('/alerts', { method: 'POST', body }); flash('Alert posted.', true); $('a-title').value = ''; $('a-desc').value = ''; }
+  catch (e) { flash(e.message); } finally { b.disabled = false; }
+});
+async function loadEmailStatus() {
+  try {
+    const d = await api('/admin/email-status');
+    $('email-status').innerHTML = (d.configured ? '✅ Email is configured' : '⚠️ Email is not configured') + '<br>From: ' + esc(d.from || '—') +
+      (d.sandbox ? '<br><span style="color:var(--amber)">' + esc(d.sandbox_note) + '</span>' : '') +
+      '<br>Farmers who can be emailed: ' + esc(d.audience && d.audience.recipients != null ? d.audience.recipients : '—');
+  } catch (e) { $('email-status').textContent = e.message; }
+}
+$('t-btn').addEventListener('click', async () => {
+  const b = $('t-btn'); b.disabled = true;
+  try { const r = await api('/admin/test-email', { method: 'POST', body: {} }); flash('Test email sent to ' + r.to + '.', true); }
+  catch (e) { flash(e.message); } finally { b.disabled = false; }
+});
+
+// ---------- boot ----------
+(async () => {
+  const s = load();
+  if (s && s.refresh_token && s.user && s.user.role === 'admin') {
+    refreshToken = s.refresh_token; me = s.user;
+    $('login-view').classList.add('hide'); $('app-view').classList.remove('hide'); $('who').textContent = 'Connecting…';
+    if (await refresh()) start(); else showLogin('Session expired — please sign in again.');
+  }
+})();
+</script>
+</body>
+</html>
