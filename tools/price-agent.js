@@ -4,17 +4,16 @@
 // Once a week this script:
 //   1. finds the newest "Weekly Livestock and Meat Producer Prices" PDF on the Livestock and
 //      Livestock Products Board of Namibia website (nammic.com.na),
-//   2. asks Claude to read the auction price table in it (the table is an image, so plain
-//      text extraction cannot read it),
+//   2. reads the LABTA live auction price table out of it,
 //   3. turns those auction categories into TFNN classes,
-//   4. sends them to the TFNN server, where they wait on the admin Prices tab for approval.
+//   4. sends them to the TFNN server, where they wait on the admin Prices tab for approval
+//      (or go live straight away when the server has PRICE_AGENT_AUTO_APPROVE=true).
 //
-// Run by .github/workflows/market-prices.yml. Needs Node 20+ and no packages.
-//   ANTHROPIC_API_KEY   Claude API key (from platform.claude.com)
-//   CRON_SECRET         same value as CRON_SECRET on the TFNN server
-//   TFNN_URL            default https://tfnn-1.onrender.com
-//   PRICE_AGENT_MODEL   default claude-sonnet-5-5
-//   REPORT_URL          optional: read this PDF instead of looking for the newest one
+// Run by .github/workflows/market-prices.yml. Needs Node 20+, the pdftotext program
+// (poppler-utils) and no npm packages. No AI service and no paid account is involved.
+//   CRON_SECRET   same value as CRON_SECRET on the TFNN server
+//   TFNN_URL      default https://tfnn-1.onrender.com
+//   REPORT_URL    optional: read this PDF instead of looking for the newest one
 // Flags: --dry-run  read the report and print what would be sent, without sending it.
 
 const SITE = 'https://nammic.com.na';
@@ -67,70 +66,65 @@ async function findLatestReport(fetchFn = fetch) {
   throw new Error('Could not find the weekly price report. ' + errors.join('; '));
 }
 
-// ---- 2. ask Claude to read the auction table -----------------------------------------------
+// ---- 2. read the auction table out of the PDF ----------------------------------------------
 
-const QUOTE_SCHEMA = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['report_date', 'auction_period', 'quotes'],
-  properties: {
-    report_date: { type: 'string', description: 'Date printed on the report, e.g. "03 November 2026"' },
-    auction_period: { type: 'string', description: 'Period the auction prices cover, e.g. "27-30 Oct 2026". Empty if not shown.' },
-    quotes: {
-      type: 'array',
-      items: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['category', 'unit', 'average', 'min', 'max'],
-        properties: {
-          category: { type: 'string', description: 'Row label exactly as printed, e.g. "Slaughter Oxen"' },
-          unit: { type: 'string', enum: ['kg', 'head'] },
-          average: { type: 'number' },
-          min: { anyOf: [{ type: 'number' }, { type: 'null' }] },
-          max: { anyOf: [{ type: 'number' }, { type: 'null' }] },
-        },
-      },
-    },
-  },
-};
+// Turns the PDF into plain text with pdftotext (from poppler-utils), keeping the table layout.
+function pdfToText(pdfBuffer) {
+  const { spawnSync } = require('child_process');
+  const out = spawnSync('pdftotext', ['-layout', '-', '-'], { input: pdfBuffer, maxBuffer: 50 * 1024 * 1024 });
+  if (out.error) throw new Error('pdftotext is not installed (' + out.error.message + ')');
+  if (out.status !== 0) throw new Error('pdftotext could not read the report: ' + String(out.stderr).slice(0, 200));
+  return out.stdout.toString('utf8');
+}
 
-const READ_PROMPT = `This is the weekly livestock and meat producer price report from the Livestock and Livestock Products Board of Namibia.
+// Row labels of the LABTA auction table. Longer labels first, so "Heifers" never claims a
+// "Store Heifers" or "Tollies/Heifers Mix" row.
+const AUCTION_ROWS = [
+  'Tollies/Heifers Mix', 'Slaughter Sheep Fat Tails', 'Slaughter Sheep Dorper', 'Slaughter Heifers', 'Slaughter Oxen',
+  'Slaughter Bulls', 'Cows with calves', 'Store Heifers', 'Store Oxen', 'Tollies Nguni', 'Heifers Nguni',
+  'Cows Medium', 'Cows Lean', 'Cows Fat', 'Tollies', 'Heifers', 'Goat',
+];
+const PER_HEAD_ROWS = ['Cows with calves', 'Goat'];
+const rowPattern = (label) => new RegExp('^' + label.split(/\s+/).map((w) => w.replace(/[/]/g, '\\s*/\\s*')).join('\\s*') + 's?\\s*(\\([^)]*\\))?\\s*(?=$|[\\d])', 'i');
 
-Find the table of LIVE ANIMAL AUCTION prices (it is usually titled with "Auction Prices" and credited to LABTA, the livestock auctioneers' association). It has one row per category of animal, with Average, Minimum and Maximum columns.
+// Reads money figures out of a line, whatever style the report used that week:
+// "33.54 30.58 35.71", "38,07 34,35 42,28", "1,378.00", "14, 288.00" or "16 528,00".
+function readNumbers(text) {
+  const tokens = String(text).match(/\d{1,3}(?:[ ,]\s?\d{3})*[.,]\d{2}(?!\d)/g) || [];
+  return tokens.map((t) => Number(t.slice(0, -3).replace(/[^\d]/g, '') + '.' + t.slice(-2)));
+}
 
-Copy every row of that auction table that has an average price:
-- category: the row label exactly as printed.
-- unit: "kg" when the price is in N$ per kg, "head" when it is N$ per animal (goats and cows with calves are usually per head; the table says which).
-- average, min, max: the numbers as printed, as plain numbers (write 35.91, not "35,91" or "N$35.91"). Use null for a missing min or max.
-
-Rules:
-- Only the live auction table. Ignore the abattoir carcass price schedules (grades A0 to C6), consumer prices and buyer conditions.
-- Leave out rows with no average (for example "not available").
-- Never estimate, round or fill in a number you cannot read clearly. Leave that row out instead.
-- If the report has no auction table, return an empty quotes list.`;
-
-async function readReport(pdfBase64, { apiKey, model, fetchFn = fetch }) {
-  const res = await fetchFn('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2026-10-21' },
-    body: JSON.stringify({
-      model,
-      max_tokens: 4000,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 } },
-          { type: 'text', text: READ_PROMPT },
-        ],
-      }],
-      output_config: { format: { type: 'json_schema', schema: QUOTE_SCHEMA } },
-    }),
-  });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(`Claude API answered ${res.status}: ${(body.error && body.error.message) || 'no details'}`);
-  if (body.stop_reason !== 'end_turn') throw new Error(`Claude stopped early (${body.stop_reason}), so the answer cannot be trusted`);
-  const text = (body.content || []).filter((c) => c.type === 'text').map((c) => c.text).join('');
-  return JSON.parse(text);
+// Finds the LABTA auction table in the report text and returns its rows.
+function parseAuctionTable(text) {
+  const clean = String(text).replace(/\r/g, '').split('\n').map((l) => l.replace(/[|*]/g, ' ').replace(/\s+/g, ' ').trim());
+  const dateLine = clean.find((l) => /^DATE\s*:/i.test(l));
+  const report_date = dateLine ? dateLine.replace(/^DATE\s*:\s*/i, '') : '';
+  // The heading can appear more than once (page headers), so read after each one and keep the fullest.
+  const starts = clean.map((l, i) => (/LABTA Auction Prices/i.test(l) ? i : -1)).filter((i) => i >= 0);
+  if (!starts.length) return { report_date, auction_period: '', quotes: [], unreadable: [], found: false };
+  const labelOf = (line) => AUCTION_ROWS.find((label) => rowPattern(label).test(line));
+  let best = null;
+  for (const start of starts) {
+    const lines = clean.slice(start + 1).filter(Boolean);
+    const period = lines.slice(0, 4).find((l) => /\d/.test(l) && /(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(l) && !readNumbers(l).length);
+    const quotes = [], unreadable = [], seen = new Set();
+    for (let i = 0; i < lines.length; i++) {
+      const label = labelOf(lines[i]);
+      if (!label || seen.has(label)) continue;
+      // the figures are on the same line, or on the next line(s) before the following row label
+      let nums = readNumbers(lines[i].replace(rowPattern(label), ''));
+      for (let j = i + 1; !nums.length && j < lines.length && j <= i + 2 && !labelOf(lines[j]); j++) {
+        if (/^[\d\s.,]+$/.test(lines[j])) nums = readNumbers(lines[j]);
+      }
+      if (!nums.length) continue;                     // an empty row: no auction price that week
+      seen.add(label);
+      if (nums.length !== 3) { unreadable.push(label); continue; }
+      quotes.push({ category: label, unit: PER_HEAD_ROWS.includes(label) ? 'head' : 'kg', average: nums[0], min: nums[1], max: nums[2] });
+    }
+    if (!best || quotes.length > best.quotes.length) best = { period, quotes, unreadable };
+  }
+  const { period, quotes, unreadable } = best;
+  return { report_date, auction_period: period || '', quotes, unreadable, found: true };
 }
 
 // ---- 3. auction categories -> TFNN classes -------------------------------------------------
@@ -182,10 +176,8 @@ function toItems(quotes) {
 
 // ---- 4. run ---------------------------------------------------------------------------------
 
-async function run({ env = process.env, dryRun = false, fetchFn = fetch, log = console.log } = {}) {
+async function run({ env = process.env, dryRun = false, fetchFn = fetch, log = console.log, toText = pdfToText } = {}) {
   const tfnnUrl = (env.TFNN_URL || 'https://tfnn-1.onrender.com').replace(/\/+$/, '');
-  const model = env.PRICE_AGENT_MODEL || 'claude-sonnet-5-5';
-  if (!env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is not set');
   if (!dryRun && !env.CRON_SECRET) throw new Error('CRON_SECRET is not set');
 
   const report = env.REPORT_URL ? { url: env.REPORT_URL, file: decodeURIComponent(env.REPORT_URL.split('/').pop()) } : await findLatestReport(fetchFn);
@@ -197,9 +189,15 @@ async function run({ env = process.env, dryRun = false, fetchFn = fetch, log = c
   if (pdf.length < 1000 || pdf.subarray(0, 5).toString() !== '%PDF-') throw new Error('The report link did not return a PDF');
   if (pdf.length > 20 * 1024 * 1024) throw new Error('The report is unexpectedly large (over 20 MB)');
 
-  const read = await readReport(pdf.toString('base64'), { apiKey: env.ANTHROPIC_API_KEY, model, fetchFn });
+  const read = parseAuctionTable(toText(pdf));
+  if (!read.found) throw new Error('The report has no "LABTA Auction Prices" table - its layout may have changed');
   log(`Read ${read.quotes.length} auction rows (report dated ${read.report_date || '?'}, auctions ${read.auction_period || '?'})`);
-  read.quotes.forEach((q) => log(`  ${q.category}: ${q.average} per ${q.unit}`));
+  read.quotes.forEach((q) => log(`  ${q.category}: ${q.average} per ${q.unit} (range ${q.min} to ${q.max})`));
+  read.unreadable.forEach((c) => log(`  Could not read the figures for "${c}", so it was left out`));
+  if (!read.quotes.length && !read.unreadable.length) {
+    log('\nThe auction table is empty this week (no auction prices published). Nothing was sent; TFNN keeps its current market prices.');
+    return { empty: true, items: [] };
+  }
 
   const { items, unpriced, rejected } = toItems(read.quotes);
   rejected.forEach((r) => log(`  Left out "${r.category}": ${r.problem}`));
@@ -239,7 +237,7 @@ async function run({ env = process.env, dryRun = false, fetchFn = fetch, log = c
   throw new Error('Could not reach TFNN: ' + lastError.message);
 }
 
-module.exports = { findReportLinks, reportDate, findLatestReport, readReport, toItems, quoteProblem, run, QUOTE_SCHEMA };
+module.exports = { findReportLinks, reportDate, findLatestReport, pdfToText, readNumbers, parseAuctionTable, toItems, quoteProblem, run };
 
 if (require.main === module) {
   run({ dryRun: process.argv.includes('--dry-run') }).catch((e) => { console.error('Price agent failed: ' + e.message); process.exit(1); });

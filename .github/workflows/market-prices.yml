@@ -1,10 +1,9 @@
 name: Weekly market prices
 # The TFNN market price agent: reads the newest weekly livestock price report from the
 # Livestock and Livestock Products Board of Namibia and sends the auction prices to TFNN,
-# where they wait on the admin Prices tab for approval.
-# Needs two repository secrets:
-#   ANTHROPIC_API_KEY - a Claude API key from platform.claude.com
-#   CRON_SECRET       - the same value as CRON_SECRET on the Render service
+# where they wait on the admin Prices tab for approval. No AI service or paid account is used.
+# Needs one repository secret:
+#   CRON_SECRET - the same value as CRON_SECRET on the Render service
 on:
   schedule:
     - cron: '17 5 * * 4' # Thursdays, 07:17 Windhoek
@@ -14,6 +13,10 @@ on:
         description: 'Only show what would be sent (do not send to TFNN)'
         type: boolean
         default: true
+      report_url:
+        description: 'Optional: read this report PDF instead of the newest one'
+        type: string
+        default: ''
 jobs:
   prices:
     runs-on: ubuntu-latest
@@ -23,11 +26,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Install the PDF reader
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
       - name: Read the weekly report and send prices to TFNN
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+          REPORT_URL: ${{ github.event_name == 'workflow_dispatch' && inputs.report_url || '' }}
         run: |
-          if [ -z "$ANTHROPIC_API_KEY" ]; then echo "ANTHROPIC_API_KEY is not set - skipping"; exit 0; fi
-          if [ "$DRY_RUN" = "true" ]; then node tools/price-agent.js --dry-run; else node tools/price-agent.js; fi
+          if [ "$DRY_RUN" = "true" ]; then node tools/price-agent.js --dry-run; exit $?; fi
+          if [ -z "$CRON_SECRET" ]; then echo "CRON_SECRET is not set - skipping"; exit 0; fi
+          node tools/price-agent.js
