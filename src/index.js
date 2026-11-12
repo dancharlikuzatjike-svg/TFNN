@@ -42,6 +42,7 @@ const sendFrontend = (file) => (req, res, next) => {
 };
 FRONTEND_FILES.forEach((f) => app.get('/' + f, sendFrontend(f)));
 app.get('/', sendFrontend('app.html'));
+app.get('/admin', sendFrontend('admin.html')); // short link for the admin page
 // Translation files: lang/index.json plus one <code>.json per language (e.g. af.json)
 app.get('/lang/:file', (req, res, next) => {
   if (!/^(index|[a-z]{2,3})\.json$/.test(req.params.file)) return next();
