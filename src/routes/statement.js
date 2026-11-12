@@ -1,7 +1,7 @@
 const express = require('express');
 const PDFDocument = require('pdfkit');
 const db = require('../db');
-const { VALUE_JOINS } = require('../utils/herdValue');
+const { VALUE_JOINS, VALUE_EXPR } = require('../utils/herdValue');
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -22,7 +22,7 @@ router.get('/', async (req, res, next) => {
     const farmer = farmerResult.rows[0];
 
     const herdResult = await db.query(
-      `SELECT a.tag_number, a.species, a.breed, COALESCE(a.estimated_value, cp.price, rp.price) AS estimated_value
+      `SELECT a.tag_number, a.species, a.breed, ${VALUE_EXPR} AS estimated_value
        FROM animal a ${VALUE_JOINS}
        WHERE a.owner_id = $1 AND a.status = 'Active' ORDER BY a.species, a.tag_number`,
       [req.auth.user_id]

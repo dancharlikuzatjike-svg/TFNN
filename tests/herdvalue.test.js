@@ -129,3 +129,44 @@ test('the statement uses the same herd value as the Value tab', async () => {
   assert.strictEqual(st.status, 200);
   assert.strictEqual(Number(st.body.live_herd[0].estimated_value), 4000);
 });
+
+test('an animal with no class is valued as the adult of its species', async () => {
+  const farmer = await registerFarmer();
+  await addAnimal(farmer, 'HV-60', undefined, 'Cattle');
+  await addAnimal(farmer, 'HV-61', 'Calf', 'Cattle');
+  await addAnimal(farmer, 'HV-62', undefined, 'Goat');
+
+  // the farmer's own Cow price covers unclassified cattle, but never a classified calf
+  await setPrices(farmer, [{ species: 'Cattle', class: 'Cow', price: 12000 }]);
+  let live = await valuation(farmer);
+  assert.strictEqual(live.total_estimated_value, 12000);
+  assert.strictEqual(live.assumed_class_count, 1);
+  assert.strictEqual(live.unpriced_count, 2);
+  let list = (await request(app).get('/api/v1/animals').set(auth(farmer))).body.animals;
+  const cattle = list.find((a) => a.tag_number === 'HV-60');
+  assert.deepStrictEqual([Number(cattle.value), cattle.value_source, cattle.value_assumed_class], [12000, 'class', 'Cow']);
+  assert.strictEqual(list.find((a) => a.tag_number === 'HV-61').value, null);
+
+  // the market Doe price covers an unclassified goat
+  process.env.CRON_SECRET = 'test-cron-secret';
+  await request(app).post('/api/v1/jobs/market-prices').set('x-cron-secret', 'test-cron-secret').send({ prices: [{ species: 'Goat', class: 'Doe', price: 1405 }] });
+  try {
+    live = await valuation(farmer);
+    assert.strictEqual(live.total_estimated_value, 13405);
+    assert.strictEqual(live.assumed_class_count, 2);
+    const rows = (await request(app).get('/api/v1/valuation/prices').set(auth(farmer))).body.prices;
+    const goatRow = rows.find((p) => p.species === 'Goat' && p.class === '');
+    assert.deepStrictEqual([goatRow.assumed_class, goatRow.market_price, goatRow.price], ['Doe', 1405, null]);
+    assert.strictEqual(rows.find((p) => p.species === 'Cattle' && p.class === '').adult_price, 12000);
+
+    // a price the farmer sets for "no class" animals wins over the assumption
+    await setPrices(farmer, [{ species: 'Goat', class: '', price: 900 }, { species: 'Cattle', class: '', price: 8000 }]);
+    live = await valuation(farmer);
+    assert.strictEqual(live.total_estimated_value, 8900);
+    assert.strictEqual(live.assumed_class_count, 0);
+    const st = await request(app).get('/api/v1/statement?format=json').set(auth(farmer));
+    assert.strictEqual(st.body.live_herd.reduce((sum, a) => sum + Number(a.estimated_value || 0), 0), 8900);
+  } finally {
+    await request(app).post('/api/v1/jobs/market-prices').set('x-cron-secret', 'test-cron-secret').send({ prices: [{ species: 'Goat', class: 'Doe', price: null }] });
+  }
+});

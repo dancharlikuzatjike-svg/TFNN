@@ -100,19 +100,19 @@ test('typical weights can be changed and are used for per-kg quotes', async () =
 });
 
 test('with auto-approve on, clean quotes go live and flagged ones still wait', async () => {
-  await clean('Goat', ['Doe', 'Wether']);
+  await clean('Goat', ['Buck', 'Wether']);
   const admin = await makeAdmin();
   process.env.PRICE_AGENT_AUTO_APPROVE = 'true';
   try {
     const res = await submit({ source: 'auto test', items: [
-      { species: 'Goat', class: 'Doe', basis: 'head', price: 1200 },
+      { species: 'Goat', class: 'Buck', basis: 'head', price: 1200 },
       { species: 'Goat', class: 'Wether', basis: 'head', price: 99999 },
     ] });
     assert.strictEqual(res.body.result.applied, 1);
     assert.strictEqual(res.body.result.pending, 1);
   } finally { delete process.env.PRICE_AGENT_AUTO_APPROVE; }
   const prices = (await request(app).get('/api/v1/admin/market-prices').set(auth(admin))).body.prices;
-  assert.strictEqual(prices.find((p) => p.species === 'Goat' && p.class === 'Doe').price, 1200);
+  assert.strictEqual(prices.find((p) => p.species === 'Goat' && p.class === 'Buck').price, 1200);
   assert.ok(!prices.find((p) => p.species === 'Goat' && p.class === 'Wether'));
-  await clean('Goat', ['Doe', 'Wether']);
+  await clean('Goat', ['Buck', 'Wether']);
 });

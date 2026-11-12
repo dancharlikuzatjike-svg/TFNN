@@ -1094,6 +1094,7 @@ function setupSheetValue(animal){
   input.value = own ? Number(animal.estimated_value) : '';
   input.placeholder = !own && animal.value != null ? Number(animal.value).toLocaleString() : '';
   if (own) note.textContent = 'Your own figure for this animal. Clear the box and save to use your herd price instead.';
+  else if (animal.value_assumed_class) note.textContent = 'No class is recorded for this animal, so it is valued as a ' + animal.value_assumed_class.toLowerCase() + ': ' + money(animal.value) + '. Type a figure to use your own.';
   else if (animal.value_source === 'class') note.textContent = 'Now valued at ' + money(animal.value) + ' from your herd prices. Type a figure only if this animal is worth more or less.';
   else if (animal.value_source === 'market') note.textContent = 'Now valued at ' + money(animal.value) + ' from the TFNN market price. Type a figure to use your own.';
   else note.textContent = 'No value yet. Type a figure here, or set a price for the whole class on the Value tab.';
@@ -1512,6 +1513,7 @@ async function loadValuation(){
     if (v.live_herd.unpriced_count === 1) notes.push('1 of your animals has no price yet, so it counts as N$0. Set its price below.');
     else if (v.live_herd.unpriced_count > 1) notes.push(v.live_herd.unpriced_count + ' of your animals have no price yet, so they count as N$0. Set their prices below.');
     if (v.live_herd.market_priced_count > 0) notes.push(v.live_herd.market_priced_count + ' animals are valued at the TFNN market price.');
+    if (v.live_herd.assumed_class_count > 0) notes.push(v.live_herd.assumed_class_count + ' animals have no class recorded, so they are valued as adults (cow, ewe or doe).');
     const noteEl = document.getElementById('valuation-note');
     noteEl.textContent = notes.join(' ');
     noteEl.style.display = notes.length ? 'block' : 'none';
@@ -1533,11 +1535,13 @@ async function loadHerdPrices(){
     document.getElementById('price-rows').innerHTML = herdPrices.map((p, i) => {
       const market = p.market_price != null ? 'Market price ' + money(p.market_price) : '';
       const own = p.own_value_count > 0 ? p.own_value_count + ' with own value' : '';
-      const sub = [p.animal_count + (p.animal_count === 1 ? ' animal' : ' animals'), own, market].filter(Boolean).join(' · ');
+      const assumed = p.assumed_class ? 'valued as ' + p.assumed_class.toLowerCase() + ' unless you set a price here' : '';
+      const fallback = p.adult_price != null ? p.adult_price : p.market_price;
+      const sub = [p.animal_count + (p.animal_count === 1 ? ' animal' : ' animals'), own, assumed, market].filter(Boolean).join(' · ');
       return `
       <div class="price-row">
         <div class="who">${esc(p.class || 'No class')} <span style="color:var(--ink-soft);">(${esc(p.species)})</span><small>${sub}</small></div>
-        <div class="amt">N$ <input type="number" min="0" step="1" inputmode="decimal" data-price-idx="${i}" aria-label="Price per head" value="${p.price != null ? p.price : ''}" placeholder="${p.market_price != null ? p.market_price : ''}"></div>
+        <div class="amt">N$ <input type="number" min="0" step="1" inputmode="decimal" data-price-idx="${i}" aria-label="Price per head" value="${p.price != null ? p.price : ''}" placeholder="${fallback != null ? fallback : ''}"></div>
       </div>`;
     }).join('');
   } catch (err) {

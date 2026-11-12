@@ -1,7 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
-const { parsePriceRows, herdTotals } = require('../utils/herdValue');
+const { parsePriceRows, herdTotals, ADULT_CLASS } = require('../utils/herdValue');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -47,6 +47,7 @@ router.get('/', async (req, res, next) => {
         total_estimated_value: Number(live.total),
         unpriced_count: live.unpriced_count,
         market_priced_count: live.market_priced_count,
+        assumed_class_count: live.assumed_class_count,
       },
       period: { from: from || null, to: to || null },
       sales: {
@@ -85,16 +86,25 @@ router.get('/prices', async (req, res, next) => {
               COALESCE(h.animal_count, 0) AS animal_count,
               COALESCE(h.own_value_count, 0) AS own_value_count,
               cp.price AS price,
+              cpa.price AS adult_price,
               rp.price AS market_price, rp.source AS market_source, rp.updated_at AS market_updated_at
        FROM keys k
        LEFT JOIN herd h ON h.species = k.species AND h.class = k.class
        LEFT JOIN class_price cp ON cp.owner_id = $1 AND cp.species = k.species AND cp.class = k.class
-       LEFT JOIN reference_price rp ON rp.species = k.species AND rp.class = k.class
+       LEFT JOIN class_price cpa ON k.class = '' AND cpa.owner_id = $1 AND cpa.species = k.species
+            AND cpa.class = CASE k.species WHEN 'Cattle' THEN 'Cow' WHEN 'Sheep' THEN 'Ewe' WHEN 'Goat' THEN 'Doe' END
+       LEFT JOIN reference_price rp ON rp.species = k.species
+            AND rp.class = COALESCE(NULLIF(k.class, ''), CASE k.species WHEN 'Cattle' THEN 'Cow' WHEN 'Sheep' THEN 'Ewe' WHEN 'Goat' THEN 'Doe' END)
        ORDER BY k.species, k.class`,
       [req.auth.user_id]
     );
     const num = (v) => (v == null ? null : Number(v));
-    res.json({ prices: result.rows.map((p) => ({ ...p, price: num(p.price), market_price: num(p.market_price) })) });
+    // For the "no class" row: assumed_class is the adult class it is valued as, and adult_price
+    // is the farmer's own price for that class (used when they set no price for the row itself).
+    res.json({ prices: result.rows.map((p) => ({
+      ...p, price: num(p.price), market_price: num(p.market_price), adult_price: num(p.adult_price),
+      assumed_class: p.class === '' ? ADULT_CLASS[p.species] : null,
+    })) });
   } catch (err) {
     next(err);
   }
