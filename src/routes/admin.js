@@ -7,6 +7,7 @@ const { sendEmail, composeEmail, appUrl, fromAddress, isSandbox, isConfigured } 
 const { sendTaskReminders } = require('../utils/reminders');
 const { PRICING, membershipFor } = require('../utils/pricing');
 const { parsePriceRows, setReferencePrices, listReferencePrices } = require('../utils/herdValue');
+const { getWeights, setWeights, listPending, decideProposals } = require('../utils/priceAgent');
 
 const router = express.Router();
 router.use(requireAuth, requireRole('admin'));
@@ -282,6 +283,38 @@ router.put('/market-prices', async (req, res, next) => {
     if (parsed.error) return res.status(400).json({ error: parsed.error });
     const result = await setReferencePrices(parsed.rows);
     res.json({ result, prices: await listReferencePrices() });
+  } catch (err) { next(err); }
+});
+
+// GET /api/v1/admin/price-proposals - prices found by the market price agent, waiting for approval
+router.get('/price-proposals', async (req, res, next) => {
+  try {
+    res.json({ proposals: await listPending(), auto_approve: String(process.env.PRICE_AGENT_AUTO_APPROVE || '').toLowerCase() === 'true' });
+  } catch (err) { next(err); }
+});
+
+// POST /api/v1/admin/price-proposals/decide   body: { ids: [..], action: 'approve' | 'reject' }
+router.post('/price-proposals/decide', async (req, res, next) => {
+  try {
+    const result = await decideProposals(req.body && req.body.ids, req.body && req.body.action);
+    if (result.error) return res.status(400).json({ error: result.error });
+    res.json({ result, proposals: await listPending(), prices: await listReferencePrices() });
+  } catch (err) { next(err); }
+});
+
+// GET /api/v1/admin/class-weights - typical live weight (kg) per class, used for per-kg prices
+router.get('/class-weights', async (req, res, next) => {
+  try {
+    res.json({ weights: await getWeights() });
+  } catch (err) { next(err); }
+});
+
+// PUT /api/v1/admin/class-weights   body: { weights: [{ species, class, weight_kg }] }
+router.put('/class-weights', async (req, res, next) => {
+  try {
+    const result = await setWeights(req.body && req.body.weights);
+    if (result.error) return res.status(400).json({ error: result.error });
+    res.json({ result, weights: await getWeights() });
   } catch (err) { next(err); }
 });
 

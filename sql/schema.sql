@@ -340,3 +340,33 @@ CREATE TABLE IF NOT EXISTS reference_price (
     updated_at  TIMESTAMP DEFAULT now(),
     PRIMARY KEY (species, class)
 );
+
+-- Market price agent: typical live weights and price proposals waiting for admin approval.
+-- The agent reports prices per kg (or per head); per-kg prices become a price per head
+-- using the typical weight for that class. Safe to re-run: all statements are idempotent.
+
+CREATE TABLE IF NOT EXISTS class_weight (
+    species     VARCHAR(20) NOT NULL,
+    class       VARCHAR(20) NOT NULL,
+    weight_kg   NUMERIC(7,2) NOT NULL CHECK (weight_kg > 0),
+    updated_at  TIMESTAMP DEFAULT now(),
+    PRIMARY KEY (species, class)
+);
+
+CREATE TABLE IF NOT EXISTS price_proposal (
+    proposal_id    SERIAL PRIMARY KEY,
+    species        VARCHAR(20) NOT NULL,
+    class          VARCHAR(20) NOT NULL,
+    basis          VARCHAR(10) NOT NULL CHECK (basis IN ('kg','head')),
+    quoted_price   NUMERIC(10,2) NOT NULL,
+    weight_kg      NUMERIC(7,2),
+    price          NUMERIC(10,2) NOT NULL,
+    previous_price NUMERIC(10,2),
+    flag_reason    VARCHAR(200),
+    source         VARCHAR(200),
+    note           VARCHAR(300),
+    status         VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected','replaced')),
+    created_at     TIMESTAMP DEFAULT now(),
+    decided_at     TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_price_proposal_status ON price_proposal(status);
