@@ -315,3 +315,28 @@ CREATE TABLE IF NOT EXISTS payment (
 );
 CREATE INDEX IF NOT EXISTS idx_payment_user ON payment(user_id);
 CREATE INDEX IF NOT EXISTS idx_payment_date ON payment(paid_on);
+
+-- Herd prices: how live animals get a value.
+-- An animal's value is the first of these that is set:
+--   1. animal.estimated_value   - the farmer's own figure for that one animal
+--   2. class_price              - the farmer's own price per head for that species + class
+--   3. reference_price          - the TFNN market reference price for that species + class
+-- class '' means "no class recorded". Safe to re-run: all statements are idempotent.
+
+CREATE TABLE IF NOT EXISTS class_price (
+    owner_id    INT NOT NULL REFERENCES users(user_id),
+    species     VARCHAR(20) NOT NULL,
+    class       VARCHAR(20) NOT NULL DEFAULT '',
+    price       NUMERIC(10,2) NOT NULL CHECK (price >= 0),
+    updated_at  TIMESTAMP DEFAULT now(),
+    PRIMARY KEY (owner_id, species, class)
+);
+
+CREATE TABLE IF NOT EXISTS reference_price (
+    species     VARCHAR(20) NOT NULL,
+    class       VARCHAR(20) NOT NULL DEFAULT '',
+    price       NUMERIC(10,2) NOT NULL CHECK (price >= 0),
+    source      VARCHAR(200),
+    updated_at  TIMESTAMP DEFAULT now(),
+    PRIMARY KEY (species, class)
+);

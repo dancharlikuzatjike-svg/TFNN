@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { VALUE_JOINS, VALUE_COLUMNS, parsePrice } = require('../utils/herdValue');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -9,15 +10,17 @@ router.use(requireAuth);
 router.get('/', async (req, res, next) => {
   try {
     const { status, species, class: cls } = req.query;
-    const conditions = ['owner_id = $1'];
+    const conditions = ['a.owner_id = $1'];
     const params = [req.auth.user_id];
 
-    if (status) { params.push(status); conditions.push(`status = $${params.length}`); }
-    if (species) { params.push(species); conditions.push(`species = $${params.length}`); }
-    if (cls) { params.push(cls); conditions.push(`class = $${params.length}`); }
+    if (status) { params.push(status); conditions.push(`a.status = $${params.length}`); }
+    if (species) { params.push(species); conditions.push(`a.species = $${params.length}`); }
+    if (cls) { params.push(cls); conditions.push(`a.class = $${params.length}`); }
 
+    // value / value_source: the animal's own figure, else the farmer's class price, else the market price
     const result = await db.query(
-      `SELECT * FROM animal WHERE ${conditions.join(' AND ')} ORDER BY created_at DESC`,
+      `SELECT a.*, ${VALUE_COLUMNS} FROM animal a ${VALUE_JOINS}
+       WHERE ${conditions.join(' AND ')} ORDER BY a.created_at DESC`,
       params
     );
     res.json({ animals: result.rows });
@@ -96,6 +99,12 @@ router.patch('/:id', async (req, res, next) => {
     const allowedFields = ['tag_number', 'species', 'breed', 'class', 'date_of_birth', 'mother_id', 'father_id', 'status', 'estimated_value'];
     const updates = [];
     const params = [];
+
+    if (req.body.estimated_value !== undefined) {
+      const value = parsePrice(req.body.estimated_value); // null clears it, back to the class / market price
+      if (value === undefined) return res.status(400).json({ error: 'estimated_value must be a number, 0 or more' });
+      req.body.estimated_value = value;
+    }
 
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {

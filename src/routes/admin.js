@@ -6,6 +6,7 @@ const { notifyMany, farmerIds, countAudience, inBackground, sendApproved } = req
 const { sendEmail, composeEmail, appUrl, fromAddress, isSandbox, isConfigured } = require('../utils/email');
 const { sendTaskReminders } = require('../utils/reminders');
 const { PRICING, membershipFor } = require('../utils/pricing');
+const { parsePriceRows, setReferencePrices, listReferencePrices } = require('../utils/herdValue');
 
 const router = express.Router();
 router.use(requireAuth, requireRole('admin'));
@@ -263,6 +264,24 @@ router.get('/billing', async (req, res, next) => {
       `SELECT p.payment_id, p.kind, p.amount::float AS amount, p.months, p.paid_on, u.name, u.phone
        FROM payment p JOIN users u ON u.user_id = p.user_id ORDER BY p.payment_id DESC LIMIT 15`);
     res.json({ claims: claims.rows, expiring: expiring.rows, totals: totals.rows[0], recent: recent.rows, pricing: PRICING() });
+  } catch (err) { next(err); }
+});
+
+// GET /api/v1/admin/market-prices - the TFNN market reference prices (N$ per head, by species + class)
+router.get('/market-prices', async (req, res, next) => {
+  try {
+    res.json({ prices: await listReferencePrices() });
+  } catch (err) { next(err); }
+});
+
+// PUT /api/v1/admin/market-prices   body: { prices: [{ species, class, price, source }] }
+// price null removes that reference price. Farmers who have not set their own price use these.
+router.put('/market-prices', async (req, res, next) => {
+  try {
+    const parsed = parsePriceRows(req.body && req.body.prices);
+    if (parsed.error) return res.status(400).json({ error: parsed.error });
+    const result = await setReferencePrices(parsed.rows);
+    res.json({ result, prices: await listReferencePrices() });
   } catch (err) { next(err); }
 });
 

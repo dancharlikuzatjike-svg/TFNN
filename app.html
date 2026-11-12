@@ -83,6 +83,13 @@ button.primary{
 .ledger-row:last-child{ border-bottom:none; }
 .ledger-row .num{ font-family:'Roboto Slab'; font-weight:700; font-size:1.05rem; }
 .ledger-row.total .num{ font-size:1.25rem; }
+.price-row{ display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); }
+.price-row:last-of-type{ border-bottom:none; }
+.price-row .who{ flex:1; min-width:0; font-size:0.9rem; }
+.price-row .who small{ display:block; color:var(--ink-soft); font-size:0.75rem; margin-top:2px; }
+.price-row .amt{ display:flex; align-items:center; gap:6px; font-size:0.85rem; color:var(--ink-soft); }
+.price-row input{ width:112px; margin:0; text-align:right; }
+.value-note{ color:var(--ink-soft); font-size:0.8rem; margin:-8px 0 16px; }
 .num.positive{ color:var(--sheep); }
 .num.negative{ color:var(--cattle); }
 
@@ -312,6 +319,16 @@ details.month .mbody{ padding:0 14px 8px; }
     <div class="panel" id="panel-valuation">
       <div class="section-title">Valuation</div>
       <div class="ledger" id="valuation-ledger"></div>
+      <div class="value-note" id="valuation-note" style="display:none;"></div>
+
+      <div class="section-title">Herd prices</div>
+      <div class="card">
+        <p style="margin:0 0 6px; font-size:0.82rem; color:var(--ink-soft);">Enter what one animal of each kind is worth today. Every animal of that kind is valued at this price. For one special animal, tap it on the Herd tab and give it its own value.</p>
+        <div id="price-rows"></div>
+        <div class="empty-note" id="price-empty" style="display:none;">Add animals on the Herd tab first, then set their prices here.</div>
+        <div class="error-msg" id="price-error" style="display:none; margin-top:10px;"></div>
+        <button class="primary" id="price-save" style="margin-top:12px;">Save prices</button>
+      </div>
     </div>
 
     <div class="panel" id="panel-marketplace">
@@ -379,6 +396,14 @@ details.month .mbody{ padding:0 14px 8px; }
       <h2 id="sheet-name" style="margin:0; font-size:1.2rem;"></h2>
       <div class="meta" id="sheet-meta" style="color:var(--ink-soft); font-size:0.82rem;"></div>
     </div>
+  </div>
+  <div class="card" id="sheet-value-card" style="display:none;">
+    <label for="sheet-value-input">Value of this animal (N$)</label>
+    <div style="display:flex; gap:8px;">
+      <input type="number" id="sheet-value-input" min="0" step="1" inputmode="decimal" style="margin:0;">
+      <button class="primary" id="sheet-value-save" style="width:auto; padding:10px 18px;">Save</button>
+    </div>
+    <div class="meta" id="sheet-value-note" style="color:var(--ink-soft); font-size:0.78rem; margin-top:8px;"></div>
   </div>
   <div class="timeline" id="sheet-timeline"></div>
   <div id="sheet-photo-wrap" style="margin-top:16px;"></div>
@@ -1044,7 +1069,7 @@ async function loadHerd(){
         </div>
         <div class="right">
           ${a.status === 'Active'
-            ? `<div class="value">${a.estimated_value ? money(a.estimated_value) : '—'}</div><div class="pill active">Active</div>`
+            ? `<div class="value">${a.value != null ? money(a.value) : '—'}</div><div class="pill active">Active</div>`
             : `<div class="pill sold">${a.status}</div>`}
         </div>
       </div>
@@ -1057,6 +1082,36 @@ async function loadHerd(){
   }
 }
 
+// The value box on an animal's sheet: shows where the current value comes from and lets the
+// farmer type their own figure for this one animal (leave empty to go back to the herd price).
+function setupSheetValue(animal){
+  const card = document.getElementById('sheet-value-card');
+  card.style.display = animal.status === 'Active' ? 'block' : 'none';
+  if (animal.status !== 'Active') return;
+  const input = document.getElementById('sheet-value-input');
+  const note = document.getElementById('sheet-value-note');
+  const own = animal.estimated_value != null;
+  input.value = own ? Number(animal.estimated_value) : '';
+  input.placeholder = !own && animal.value != null ? Number(animal.value).toLocaleString() : '';
+  if (own) note.textContent = 'Your own figure for this animal. Clear the box and save to use your herd price instead.';
+  else if (animal.value_source === 'class') note.textContent = 'Now valued at ' + money(animal.value) + ' from your herd prices. Type a figure only if this animal is worth more or less.';
+  else if (animal.value_source === 'market') note.textContent = 'Now valued at ' + money(animal.value) + ' from the TFNN market price. Type a figure to use your own.';
+  else note.textContent = 'No value yet. Type a figure here, or set a price for the whole class on the Value tab.';
+
+  document.getElementById('sheet-value-save').onclick = async () => {
+    const raw = input.value.trim();
+    if (raw !== '' && !(Number(raw) >= 0)) return showToast('Enter a value of 0 or more', true);
+    try {
+      const data = await api('/animals/' + animal.animal_id, { method: 'PATCH', body: { estimated_value: raw === '' ? null : Number(raw) } });
+      if (data.__queued) { showToast('No connection — saved on this phone, will sync when online'); return; }
+      showToast('Value saved');
+      await Promise.all([loadHerd(), loadValuation()]);
+      const fresh = animals.find(a => String(a.animal_id) === String(animal.animal_id));
+      if (fresh) setupSheetValue(fresh);
+    } catch (err) { showToast(err.message, true); }
+  };
+}
+
 async function openAnimalSheet(animalId){
   const animal = animals.find(a => String(a.animal_id) === String(animalId));
   if (!animal) return;
@@ -1064,6 +1119,7 @@ async function openAnimalSheet(animalId){
   document.getElementById('sheet-tag').className = 'tag-badge ' + speciesClass(animal.species);
   document.getElementById('sheet-name').textContent = (animal.breed || '') + ' ' + animal.species;
   document.getElementById('sheet-meta').textContent = animal.status;
+  setupSheetValue(animal);
 
   const timelineEl = document.getElementById('sheet-timeline');
   timelineEl.innerHTML = '<p class="meta">Loading history…</p>';
@@ -1452,10 +1508,71 @@ async function loadValuation(){
         <div class="num ${v.net_cash_position >= 0 ? 'positive' : 'negative'}">${v.net_cash_position >= 0 ? '+' : '−'}${money(Math.abs(v.net_cash_position))}</div>
       </div>
     `;
+    const notes = [];
+    if (v.live_herd.unpriced_count === 1) notes.push('1 of your animals has no price yet, so it counts as N$0. Set its price below.');
+    else if (v.live_herd.unpriced_count > 1) notes.push(v.live_herd.unpriced_count + ' of your animals have no price yet, so they count as N$0. Set their prices below.');
+    if (v.live_herd.market_priced_count > 0) notes.push(v.live_herd.market_priced_count + ' animals are valued at the TFNN market price.');
+    const noteEl = document.getElementById('valuation-note');
+    noteEl.textContent = notes.join(' ');
+    noteEl.style.display = notes.length ? 'block' : 'none';
+    loadHerdPrices();
   } catch (err) {
     showToast(err.message, true);
   }
 }
+
+// ---- HERD PRICES (price per head for each species + class) ----
+let herdPrices = [];
+async function loadHerdPrices(){
+  try {
+    const data = await api('/valuation/prices');
+    if (data.__offline) return;
+    herdPrices = data.prices || [];
+    document.getElementById('price-empty').style.display = herdPrices.length ? 'none' : 'block';
+    document.getElementById('price-save').style.display = herdPrices.length ? 'block' : 'none';
+    document.getElementById('price-rows').innerHTML = herdPrices.map((p, i) => {
+      const market = p.market_price != null ? 'Market price ' + money(p.market_price) : '';
+      const own = p.own_value_count > 0 ? p.own_value_count + ' with own value' : '';
+      const sub = [p.animal_count + (p.animal_count === 1 ? ' animal' : ' animals'), own, market].filter(Boolean).join(' · ');
+      return `
+      <div class="price-row">
+        <div class="who">${esc(p.class || 'No class')} <span style="color:var(--ink-soft);">(${esc(p.species)})</span><small>${sub}</small></div>
+        <div class="amt">N$ <input type="number" min="0" step="1" inputmode="decimal" data-price-idx="${i}" aria-label="Price per head" value="${p.price != null ? p.price : ''}" placeholder="${p.market_price != null ? p.market_price : ''}"></div>
+      </div>`;
+    }).join('');
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+document.getElementById('price-save').addEventListener('click', async () => {
+  const errEl = document.getElementById('price-error');
+  errEl.style.display = 'none';
+  const prices = [];
+  for (const input of document.querySelectorAll('#price-rows input[data-price-idx]')) {
+    const p = herdPrices[Number(input.dataset.priceIdx)];
+    const raw = input.value.trim();
+    if (raw !== '' && !(Number(raw) >= 0)) {
+      errEl.textContent = 'Enter a price of 0 or more for ' + (p.class || p.species) + '.';
+      errEl.style.display = 'block';
+      return;
+    }
+    prices.push({ species: p.species, class: p.class, price: raw === '' ? null : Number(raw) });
+  }
+  if (!prices.length) return;
+  const btn = document.getElementById('price-save');
+  btn.disabled = true;
+  try {
+    const data = await api('/valuation/prices', { method: 'PUT', body: { prices } });
+    if (data.__queued) { showToast('No connection — saved on this phone, will sync when online'); return; }
+    showToast('Prices saved');
+    await Promise.all([loadHerd(), loadValuation()]);
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+  }
+});
 // ---- MARKETPLACE ----
 document.getElementById('mkt-tab-browse').addEventListener('click', () => {
   document.getElementById('mkt-tab-browse').style.background = 'var(--ink)';

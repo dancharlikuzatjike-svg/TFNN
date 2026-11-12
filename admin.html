@@ -71,6 +71,7 @@
     <button data-tab="users">Users</button>
     <button data-tab="billing">Billing</button>
     <button data-tab="messages">Messages</button>
+    <button data-tab="prices">Prices</button>
   </nav>
   <main>
     <div id="flash"></div>
@@ -132,6 +133,16 @@
         <h2>Email check</h2>
         <div id="email-status" style="font-size:.85rem; margin-bottom:8px;">Loading…</div>
         <button class="btn grey" id="t-btn">Send me a test email</button>
+      </div>
+    </section>
+    <section id="tab-prices" class="hide">
+      <div class="card">
+        <h2>Market prices (N$ per head)</h2>
+        <p style="font-size:.85rem; margin:0 0 10px;">Farmers who have not set their own price for a class are valued at these prices. Leave a box empty for no market price.</p>
+        <div id="mp-rows"><div class="empty">Loading…</div></div>
+        <label>Where these prices come from (shown in your records)</label><input id="mp-source" maxlength="200" placeholder="e.g. Windhoek auction, 12 Nov 2026">
+        <button class="btn" id="mp-btn">Save market prices</button>
+        <div id="mp-updated" style="font-size:.78rem; margin-top:8px;"></div>
       </div>
     </section>
   </main>
@@ -210,7 +221,8 @@ function start() {
 $('tabs').addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
   document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b));
-  ['overview', 'users', 'billing', 'messages'].forEach(t => $('tab-' + t).classList.toggle('hide', t !== b.dataset.tab));
+  ['overview', 'users', 'billing', 'messages', 'prices'].forEach(t => $('tab-' + t).classList.toggle('hide', t !== b.dataset.tab));
+  if (b.dataset.tab === 'prices') loadMarketPrices();
   if (b.dataset.tab === 'billing') loadBilling();
   if (b.dataset.tab === 'messages') loadEmailStatus();
   if (b.dataset.tab === 'overview') loadOverview();
@@ -325,6 +337,33 @@ $('p-btn').addEventListener('click', async () => {
     const r = await api('/admin/payments', { method: 'POST', body: kind === 'membership' ? { phone, kind, months } : { phone, kind } });
     flash('Payment recorded for ' + (r.user ? r.user.name : phone) + '.', true); $('p-phone').value = ''; loadBilling();
   } catch (e) { flash(e.message); } finally { b.disabled = false; }
+});
+
+// ---------- market prices ----------
+const MP_CLASSES = { Cattle: ['Cow', 'Bull', 'Heifer', 'Steer', 'Calf'], Sheep: ['Ewe', 'Ram', 'Wether', 'Lamb'], Goat: ['Doe', 'Buck', 'Wether', 'Kid'] };
+async function loadMarketPrices() {
+  try {
+    const d = await api('/admin/market-prices'), saved = d.prices || [];
+    const find = (sp, cl) => saved.find(p => p.species === sp && p.class === cl);
+    $('mp-rows').innerHTML = Object.keys(MP_CLASSES).map(sp =>
+      '<h3 style="margin:12px 0 4px; font-size:.9rem;">' + sp + '</h3><table>' + MP_CLASSES[sp].map(cl => {
+        const p = find(sp, cl);
+        return '<tr><td>' + cl + '</td><td style="text-align:right;"><input type="number" min="0" step="1" inputmode="decimal" style="width:130px; margin:0; text-align:right;" data-sp="' + sp + '" data-cl="' + cl + '" value="' + (p ? p.price : '') + '"></td></tr>';
+      }).join('') + '</table>').join('');
+    const latest = saved.slice().sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)))[0];
+    $('mp-updated').textContent = latest ? 'Last updated ' + fmtDate(latest.updated_at) + (latest.source ? ' · ' + latest.source : '') : 'No market prices set yet.';
+  } catch (e) { flash(e.message); }
+}
+$('mp-btn').addEventListener('click', async () => {
+  const source = $('mp-source').value.trim(), prices = [];
+  for (const i of document.querySelectorAll('#mp-rows input')) {
+    const raw = i.value.trim();
+    if (raw !== '' && !(Number(raw) >= 0)) return flash('Enter a price of 0 or more for ' + i.dataset.cl + '.');
+    prices.push({ species: i.dataset.sp, class: i.dataset.cl, price: raw === '' ? null : Number(raw), source: source || undefined });
+  }
+  const b = $('mp-btn'); b.disabled = true;
+  try { await api('/admin/market-prices', { method: 'PUT', body: { prices } }); flash('Market prices saved.', true); loadMarketPrices(); }
+  catch (e) { flash(e.message); } finally { b.disabled = false; }
 });
 
 // ---------- messages ----------

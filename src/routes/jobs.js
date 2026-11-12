@@ -1,6 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const { sendTaskReminders } = require('../utils/reminders');
+const { parsePriceRows, setReferencePrices } = require('../utils/herdValue');
 
 const router = express.Router();
 
@@ -22,6 +23,19 @@ function requireCronSecret(req, res, next) {
 router.post('/task-reminders', requireCronSecret, async (req, res, next) => {
   try {
     res.json({ result: await sendTaskReminders() });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/jobs/market-prices   body: { prices: [{ species, class, price, source }] }
+// Lets a scheduled price checker update the TFNN market reference prices (N$ per head).
+// price null removes that reference price.
+router.post('/market-prices', requireCronSecret, async (req, res, next) => {
+  try {
+    const parsed = parsePriceRows(req.body && req.body.prices);
+    if (parsed.error) return res.status(400).json({ error: parsed.error });
+    res.json({ result: await setReferencePrices(parsed.rows) });
   } catch (err) {
     next(err);
   }
