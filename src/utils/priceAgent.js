@@ -80,6 +80,9 @@ async function submitProposals({ items, source }) {
     const prevRow = current.rows.find((r) => r.species === it.species && r.class === it.class);
     const previous = prevRow ? Number(prevRow.price) : null;
 
+    // Same price as the one already live: nothing for the admin to decide.
+    if (previous !== null && previous === price) { skipped.push({ item: label, reason: 'same as the current market price' }); continue; }
+
     const [lo, hi] = PLAUSIBLE[it.species];
     let flag = null;
     if (price < lo || price > hi) flag = `N$${price} per head is outside the normal range for ${it.species.toLowerCase()}`;
