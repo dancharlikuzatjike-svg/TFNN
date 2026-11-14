@@ -82,7 +82,7 @@ test("one farmer's prices never affect another farmer", async () => {
 test('bad prices are rejected', async () => {
   const farmer = await registerFarmer();
   assert.strictEqual((await setPrices(farmer, [{ species: 'Cattle', class: 'Cow', price: -5 }])).status, 400);
-  assert.strictEqual((await setPrices(farmer, [{ species: 'Horse', class: 'Mare', price: 5 }])).status, 400);
+  assert.strictEqual((await setPrices(farmer, [{ species: '', class: 'Mare', price: 5 }])).status, 400);
   assert.strictEqual((await setPrices(farmer, [])).status, 400);
   assert.strictEqual((await request(app).get('/api/v1/valuation/prices')).status, 401);
 });

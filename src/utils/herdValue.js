@@ -9,11 +9,33 @@
 // wins. value_assumed_class says when that assumption was used.
 const db = require('../db');
 
+// The species that have TFNN market reference prices (the weekly price agent covers these three).
 const SPECIES = ['Cattle', 'Sheep', 'Goat'];
 const MAX_PRICE = 99999999;
 
-const ADULT_CLASS = { Cattle: 'Cow', Sheep: 'Ewe', Goat: 'Doe' };
-const adultOf = (speciesColumn) => `CASE ${speciesColumn} WHEN 'Cattle' THEN 'Cow' WHEN 'Sheep' THEN 'Ewe' WHEN 'Goat' THEN 'Doe' END`;
+// Any animal can be recorded. These common names are tidied to one spelling; anything else is
+// kept as typed, in title case (e.g. "guinea fowl" becomes "Guinea Fowl").
+const SPECIES_ALIASES = {
+  cattle: 'Cattle', cow: 'Cattle', cows: 'Cattle', sheep: 'Sheep', goat: 'Goat', goats: 'Goat',
+  pig: 'Pig', pigs: 'Pig', horse: 'Horse', horses: 'Horse', donkey: 'Donkey', donkeys: 'Donkey',
+  chicken: 'Chicken', chickens: 'Chicken',
+};
+function normaliseSpecies(raw) {
+  const s = String(raw == null ? '' : raw).trim().replace(/\s+/g, ' ');
+  if (!s || s.length > 40) return null;
+  const known = SPECIES_ALIASES[s.toLowerCase()];
+  if (known) return known;
+  return s.toLowerCase().replace(/(^|[\s\-\/])([a-z])/g, (m, before, c) => before + c.toUpperCase());
+}
+
+// The adult female of each species, used for animals with no class recorded.
+const ADULT_CLASS = { Cattle: 'Cow', Sheep: 'Ewe', Goat: 'Doe', Pig: 'Sow', Horse: 'Mare', Donkey: 'Jenny', Chicken: 'Hen' };
+// Classes that count as breeding females, and classes that count as young animals.
+const BREEDING_FEMALE = ['Cow', 'Ewe', 'Doe', 'Sow', 'Mare', 'Jenny', 'Hen'];
+const YOUNG_CLASS = ['Calf', 'Lamb', 'Kid', 'Piglet', 'Weaner', 'Foal', 'Chick'];
+// SQL: the adult class for the species in speciesColumn, or NULL for a species we don't know.
+const adultOf = (speciesColumn) =>
+  `CASE ${speciesColumn} ${Object.entries(ADULT_CLASS).map(([sp, c]) => `WHEN '${sp}' THEN '${c}'`).join(' ')} END`;
 
 // SELECT fragments, for an `animal a` already in the FROM clause.
 //   cp  = the farmer's price for the animal's own class ('' when it has none)
@@ -46,12 +68,13 @@ function parsePriceRows(input) {
   if (input.length > 100) return { error: 'Too many prices in one request' };
   const rows = [];
   for (const p of input) {
-    if (!p || !SPECIES.includes(p.species)) return { error: 'species must be one of: ' + SPECIES.join(', ') };
+    const species = p ? normaliseSpecies(p.species) : null;
+    if (!species) return { error: 'species is required (up to 40 letters)' };
     const cls = p.class == null ? '' : String(p.class).trim();
     if (cls.length > 20) return { error: 'class is too long' };
     const price = parsePrice(p.price);
-    if (price === undefined) return { error: `Price for ${p.species} ${cls} must be a number, 0 or more`.replace('  ', ' ') };
-    rows.push({ species: p.species, class: cls, price, source: p.source ? String(p.source).slice(0, 200) : null });
+    if (price === undefined) return { error: `Price for ${species} ${cls} must be a number, 0 or more`.replace('  ', ' ') };
+    rows.push({ species, class: cls, price, source: p.source ? String(p.source).slice(0, 200) : null });
   }
   return { rows };
 }
@@ -93,4 +116,4 @@ async function listReferencePrices() {
   return r.rows.map((p) => ({ ...p, price: Number(p.price) }));
 }
 
-module.exports = { SPECIES, ADULT_CLASS, VALUE_JOINS, VALUE_COLUMNS, VALUE_EXPR, parsePrice, parsePriceRows, herdTotals, setReferencePrices, listReferencePrices };
+module.exports = { SPECIES, ADULT_CLASS, BREEDING_FEMALE, YOUNG_CLASS, normaliseSpecies, adultOf, VALUE_JOINS, VALUE_COLUMNS, VALUE_EXPR, parsePrice, parsePriceRows, herdTotals, setReferencePrices, listReferencePrices };

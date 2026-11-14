@@ -386,3 +386,9 @@ CREATE TABLE IF NOT EXISTS password_reset (
 CREATE INDEX IF NOT EXISTS password_reset_user_idx ON password_reset(user_id);
 -- Sign-ins made before this moment stop working, so a reset logs out every other device.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMPTZ;
+
+-- Any species can be recorded, not only Cattle, Sheep and Goat. The old fixed list is removed,
+-- and species names can be up to 40 letters. Safe to re-run.
+ALTER TABLE animal DROP CONSTRAINT IF EXISTS animal_species_check;
+ALTER TABLE animal ALTER COLUMN species TYPE VARCHAR(40);
+ALTER TABLE class_price ALTER COLUMN species TYPE VARCHAR(40);

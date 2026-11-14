@@ -1,7 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth, requireRole } = require('../middleware/auth');
-const { VALUE_JOINS, VALUE_COLUMNS, parsePrice } = require('../utils/herdValue');
+const { VALUE_JOINS, VALUE_COLUMNS, parsePrice, normaliseSpecies } = require('../utils/herdValue');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -36,8 +36,9 @@ router.post('/', async (req, res, next) => {
   try {
     const { tag_number, species, breed, class: cls, date_of_birth, mother_id, father_id, client_id } = req.body;
 
-    if (!tag_number || !species) {
-      return res.status(400).json({ error: 'tag_number and species are required' });
+    const speciesName = normaliseSpecies(species);
+    if (!tag_number || !speciesName) {
+      return res.status(400).json({ error: 'tag_number and species are required (species up to 40 letters)' });
     }
 
     if (client_id) {
@@ -51,7 +52,7 @@ router.post('/', async (req, res, next) => {
       `INSERT INTO animal (tag_number, species, breed, class, date_of_birth, owner_id, mother_id, father_id, client_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
-      [tag_number, species, breed || null, cls || null, date_of_birth || null,
+      [tag_number, speciesName, breed || null, cls || null, date_of_birth || null,
        req.auth.user_id, mother_id || null, father_id || null, client_id || null]
     );
     res.status(201).json({ animal: result.rows[0] });
@@ -95,6 +96,12 @@ router.patch('/:id', async (req, res, next) => {
   try {
     const animal = await findOwnedAnimal(req.params.id, req.auth.user_id);
     if (!animal) return res.status(404).json({ error: 'Animal not found' });
+
+    if (req.body.species !== undefined) {
+      const speciesName = normaliseSpecies(req.body.species);
+      if (!speciesName) return res.status(400).json({ error: 'species is required (up to 40 letters)' });
+      req.body.species = speciesName;
+    }
 
     const allowedFields = ['tag_number', 'species', 'breed', 'class', 'date_of_birth', 'mother_id', 'father_id', 'status', 'estimated_value'];
     const updates = [];

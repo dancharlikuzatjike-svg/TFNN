@@ -483,15 +483,16 @@ details.month .mbody{ padding:0 14px 8px; }
   <label for="aa-tag">Tag number *</label>
   <input type="text" id="aa-tag" maxlength="30" placeholder="e.g. 0142" autocomplete="off" autocapitalize="characters">
   <label for="aa-species">Species *</label>
-  <select id="aa-species">
-    <option value="Cattle">Cattle</option>
-    <option value="Sheep">Sheep</option>
-    <option value="Goat">Goat</option>
-  </select>
+  <input type="text" id="aa-species" list="aa-species-list" maxlength="40" placeholder="Pick or type, e.g. Pig, Horse, Donkey" autocomplete="off">
+  <datalist id="aa-species-list">
+    <option value="Cattle"></option><option value="Sheep"></option><option value="Goat"></option>
+    <option value="Pig"></option><option value="Horse"></option><option value="Donkey"></option><option value="Chicken"></option>
+  </datalist>
   <label for="aa-breed">Breed</label>
   <input type="text" id="aa-breed" maxlength="50" placeholder="e.g. Brahman, Dorper, Boer">
   <label for="aa-class">Class</label>
-  <select id="aa-class"></select>
+  <input type="text" id="aa-class" list="aa-class-list" maxlength="20" placeholder="Pick or type" autocomplete="off">
+  <datalist id="aa-class-list"></datalist>
   <label for="aa-dob">Date of birth</label>
   <input type="date" id="aa-dob">
   <div class="error-msg" id="aa-error" style="display:none;"></div>
@@ -1290,11 +1291,26 @@ const CLASS_OPTIONS = {
   Cattle: ['Cow', 'Bull', 'Heifer', 'Steer', 'Calf'],
   Sheep: ['Ewe', 'Ram', 'Wether', 'Lamb'],
   Goat: ['Doe', 'Buck', 'Wether', 'Kid'],
+  Pig: ['Sow', 'Boar', 'Barrow', 'Weaner', 'Piglet'],
+  Horse: ['Mare', 'Stallion', 'Gelding', 'Foal'],
+  Donkey: ['Jenny', 'Jack', 'Foal'],
+  Chicken: ['Hen', 'Rooster', 'Chick'],
 };
+const SPECIES_ALIAS = {
+  cattle: 'Cattle', cow: 'Cattle', cows: 'Cattle', sheep: 'Sheep', goat: 'Goat', goats: 'Goat',
+  pig: 'Pig', pigs: 'Pig', horse: 'Horse', horses: 'Horse', donkey: 'Donkey', donkeys: 'Donkey',
+  chicken: 'Chicken', chickens: 'Chicken',
+};
+// Tidies a typed species the same way the server does ("pigs" becomes "Pig").
+function canonSpecies(raw){
+  const t = String(raw || '').trim().replace(/\s+/g, ' ');
+  if (!t) return '';
+  return SPECIES_ALIAS[t.toLowerCase()] || t.toLowerCase().replace(/(^|[\s\-\/])([a-z])/g, (m, b, c) => b + c.toUpperCase());
+}
 function fillClassOptions(){
-  const sp = document.getElementById('aa-species').value;
-  document.getElementById('aa-class').innerHTML = '<option value="">Select…</option>' +
-    (CLASS_OPTIONS[sp] || []).map(c => `<option value="${c}">${c}</option>`).join('');
+  const sp = canonSpecies(document.getElementById('aa-species').value);
+  document.getElementById('aa-class').value = '';
+  document.getElementById('aa-class-list').innerHTML = (CLASS_OPTIONS[sp] || []).map(c => `<option value="${c}"></option>`).join('');
 }
 document.getElementById('aa-species').addEventListener('change', fillClassOptions);
 
@@ -1318,7 +1334,7 @@ async function saveAnimal(addAnother){
   errEl.style.display = 'none';
 
   const tag = document.getElementById('aa-tag').value.trim();
-  const species = document.getElementById('aa-species').value;
+  const species = canonSpecies(document.getElementById('aa-species').value);
   const breed = document.getElementById('aa-breed').value.trim();
   const cls = document.getElementById('aa-class').value;
   const dob = document.getElementById('aa-dob').value;
@@ -1659,7 +1675,7 @@ async function loadPerformance(){
     const spRows = Object.entries(p.by_species).filter(([, d]) => d.active || d.births || d.deaths);
     document.getElementById('performance-species').innerHTML = spRows.length ? spRows.map(([sp, d]) => `
       <div class="ledger-row">
-        <div><div>${SP_NAMES[sp]}</div><div class="meta" style="color:var(--ink-soft); font-size:0.75rem;">${d.breeding_females} breeding females · ${d.active} active · ${d.deaths} died (${d.young_deaths} young)</div></div>
+        <div><div>${SP_NAMES[sp] || sp}</div><div class="meta" style="color:var(--ink-soft); font-size:0.75rem;">${d.breeding_females} breeding females · ${d.active} active · ${d.deaths} died (${d.young_deaths} young)</div></div>
         <div class="num">${d.births} born${d.per_100_females === null ? '' : ' · ' + d.per_100_females + ' per 100'}</div>
       </div>`).join('') : '<div class="meta" style="color:var(--ink-soft); font-size:0.8rem;">No animals or events in this year yet.</div>';
   } catch (err) {
@@ -1887,7 +1903,6 @@ const TFNN_FIELDS = [
   { key: 'date_of_birth', label: 'Date of birth', required: false, guesses: ['dob', 'date of birth', 'birth date', 'born'] },
   { key: 'class', label: 'Class', required: false, guesses: ['class', 'category'] },
 ];
-const VALID_SPECIES = ['Cattle', 'Sheep', 'Goat'];
 let importState = { headers: [], rows: [], mapping: {}, mappedRows: [] };
 
 document.getElementById('import-herd-btn').addEventListener('click', () => {
@@ -1959,8 +1974,8 @@ document.getElementById('imp-preview-btn').addEventListener('click', () => {
     const dobRaw = mapping.date_of_birth >= 0 ? row[mapping.date_of_birth] : '';
     const cls = mapping.class >= 0 ? String(row[mapping.class] || '').trim() : '';
 
-    const speciesMatch = VALID_SPECIES.find(s => s.toLowerCase() === speciesRaw.toLowerCase());
-    if (!speciesMatch) warnings.push(`Row ${i + 2}: species "${speciesRaw}" doesn't match Cattle/Sheep/Goat — will be skipped`);
+    const speciesMatch = canonSpecies(speciesRaw);
+    if (!speciesMatch) warnings.push(`Row ${i + 2}: no species given — will be skipped`);
     if (!tag_number) warnings.push(`Row ${i + 2}: missing tag number — will be skipped`);
 
     let date_of_birth;

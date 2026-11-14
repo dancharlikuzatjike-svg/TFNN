@@ -1,7 +1,10 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
-const { parsePriceRows, herdTotals, ADULT_CLASS } = require('../utils/herdValue');
+const { parsePriceRows, herdTotals, ADULT_CLASS, BREEDING_FEMALE, YOUNG_CLASS, adultOf } = require('../utils/herdValue');
+
+// Turns a list of class names into SQL: 'Cow','Ewe',...
+const sqlList = (names) => names.map((n) => `'${n}'`).join(',');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -92,9 +95,9 @@ router.get('/prices', async (req, res, next) => {
        LEFT JOIN herd h ON h.species = k.species AND h.class = k.class
        LEFT JOIN class_price cp ON cp.owner_id = $1 AND cp.species = k.species AND cp.class = k.class
        LEFT JOIN class_price cpa ON k.class = '' AND cpa.owner_id = $1 AND cpa.species = k.species
-            AND cpa.class = CASE k.species WHEN 'Cattle' THEN 'Cow' WHEN 'Sheep' THEN 'Ewe' WHEN 'Goat' THEN 'Doe' END
+            AND cpa.class = ${adultOf('k.species')}
        LEFT JOIN reference_price rp ON rp.species = k.species
-            AND rp.class = COALESCE(NULLIF(k.class, ''), CASE k.species WHEN 'Cattle' THEN 'Cow' WHEN 'Sheep' THEN 'Ewe' WHEN 'Goat' THEN 'Doe' END)
+            AND rp.class = COALESCE(NULLIF(k.class, ''), ${adultOf('k.species')})
        ORDER BY k.species, k.class`,
       [req.auth.user_id]
     );
@@ -147,8 +150,8 @@ router.get('/performance', async (req, res, next) => {
     const herd = await db.query(
       `SELECT
          COUNT(*) FILTER (WHERE status = 'Active')::int AS active_count,
-         COUNT(*) FILTER (WHERE status = 'Active' AND class IN ('Cow','Ewe','Doe'))::int AS breeding_females,
-         COUNT(*) FILTER (WHERE status = 'Active' AND class IN ('Calf','Lamb','Kid'))::int AS young_active
+         COUNT(*) FILTER (WHERE status = 'Active' AND class IN (${sqlList(BREEDING_FEMALE)}))::int AS breeding_females,
+         COUNT(*) FILTER (WHERE status = 'Active' AND class IN (${sqlList(YOUNG_CLASS)}))::int AS young_active
        FROM animal WHERE owner_id = $1`, [owner]);
 
     const eventWindow = ['e.deleted_at IS NULL', 'a.owner_id = $1'];
@@ -160,21 +163,21 @@ router.get('/performance', async (req, res, next) => {
       `SELECT
          COUNT(*) FILTER (WHERE e.event_type = 'Born')::int AS births,
          COUNT(*) FILTER (WHERE e.event_type = 'Died')::int AS deaths,
-         COUNT(*) FILTER (WHERE e.event_type = 'Died' AND a.class IN ('Calf','Lamb','Kid'))::int AS young_deaths
+         COUNT(*) FILTER (WHERE e.event_type = 'Died' AND a.class IN (${sqlList(YOUNG_CLASS)}))::int AS young_deaths
        FROM animal_event e JOIN animal a ON a.animal_id = e.animal_id
        WHERE ${eventWindow.join(' AND ')}`, params);
 
-    // The same counts split by species (Cattle, Sheep, Goat), so one species does not hide another.
+    // The same counts split by species, so one kind of animal does not hide another.
     const herdBySpecies = await db.query(
       `SELECT species,
          COUNT(*) FILTER (WHERE status = 'Active')::int AS active,
-         COUNT(*) FILTER (WHERE status = 'Active' AND class IN ('Cow','Ewe','Doe'))::int AS breeding_females
+         COUNT(*) FILTER (WHERE status = 'Active' AND class IN (${sqlList(BREEDING_FEMALE)}))::int AS breeding_females
        FROM animal WHERE owner_id = $1 GROUP BY species`, [owner]);
     const eventsBySpecies = await db.query(
       `SELECT a.species,
          COUNT(*) FILTER (WHERE e.event_type = 'Born')::int AS births,
          COUNT(*) FILTER (WHERE e.event_type = 'Died')::int AS deaths,
-         COUNT(*) FILTER (WHERE e.event_type = 'Died' AND a.class IN ('Calf','Lamb','Kid'))::int AS young_deaths
+         COUNT(*) FILTER (WHERE e.event_type = 'Died' AND a.class IN (${sqlList(YOUNG_CLASS)}))::int AS young_deaths
        FROM animal_event e JOIN animal a ON a.animal_id = e.animal_id
        WHERE ${eventWindow.join(' AND ')} GROUP BY a.species`, params);
 
@@ -202,7 +205,8 @@ router.get('/performance', async (req, res, next) => {
     const pct = (part, whole) => (whole > 0 ? Math.round((part / whole) * 1000) / 10 : null);
 
     const bySpecies = {};
-    for (const sp of ['Cattle', 'Sheep', 'Goat']) {
+    const speciesNames = [...new Set([...herdBySpecies.rows, ...eventsBySpecies.rows].map((r) => r.species))].sort();
+    for (const sp of speciesNames) {
       const hr = herdBySpecies.rows.find((r) => r.species === sp) || { active: 0, breeding_females: 0 };
       const er = eventsBySpecies.rows.find((r) => r.species === sp) || { births: 0, deaths: 0, young_deaths: 0 };
       bySpecies[sp] = {
