@@ -9,6 +9,8 @@ const { PRICING, membershipFor } = require('../utils/pricing');
 const { parsePriceRows, setReferencePrices, listReferencePrices } = require('../utils/herdValue');
 const { getWeights, setWeights, listPending, decideProposals } = require('../utils/priceAgent');
 
+const { createResetCode } = require('../utils/passwordReset');
+
 const router = express.Router();
 router.use(requireAuth, requireRole('admin'));
 
@@ -107,6 +109,20 @@ router.patch('/users/:id', async (req, res, next) => {
       inBackground('APPROVAL EMAIL', () => sendApproved(user));
     }
     res.json({ user });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/admin/users/:id/reset-code - a one-time code the admin reads to someone
+// who forgot their password. Shown once here and stored only as a hash.
+router.post('/users/:id/reset-code', async (req, res, next) => {
+  try {
+    if (!/^\d+$/.test(req.params.id)) return res.status(404).json({ error: 'User not found' });
+    const found = await db.query('SELECT user_id, name, phone FROM users WHERE user_id = $1 AND active = true', [req.params.id]);
+    if (found.rows.length === 0) return res.status(404).json({ error: 'User not found or suspended' });
+    const { code, expires_at } = await createResetCode(found.rows[0].user_id, { ttlMinutes: 24 * 60, createdBy: req.auth.user_id });
+    res.json({ code, expires_at, user: found.rows[0] });
   } catch (err) {
     next(err);
   }

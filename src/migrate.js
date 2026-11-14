@@ -7,6 +7,8 @@ async function migrate() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const sql = fs.readFileSync(path.join(__dirname, '..', 'sql', 'schema.sql'), 'utf8');
 
+  // Name the database server in the log (never the user name or password), so it is clear where the data lives
+  try { console.log('Database host: ' + new URL(process.env.DATABASE_URL).hostname); } catch (e) { /* not a URL - nothing to show */ }
   console.log('Applying schema.sql...');
   await pool.query(sql);
   console.log('Done. Tables created (or already existed).');

@@ -27,6 +27,7 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
+app.set('trust proxy', 1); // Render sits in front of the app; this makes req.ip the visitor's address
 app.use(cors());
 app.use(express.json({ limit: '6mb' })); // base64 photo/voice uploads need more than the 100kb default
 

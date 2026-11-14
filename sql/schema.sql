@@ -370,3 +370,19 @@ CREATE TABLE IF NOT EXISTS price_proposal (
     decided_at     TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_price_proposal_status ON price_proposal(status);
+
+-- Password reset: one-time 6-digit codes. Only a hash of the code is stored.
+-- A code is made by an admin (to read to the farmer) or emailed when the farmer asks.
+CREATE TABLE IF NOT EXISTS password_reset (
+    reset_id    SERIAL PRIMARY KEY,
+    user_id     INT NOT NULL REFERENCES users(user_id),
+    code_hash   TEXT NOT NULL,
+    expires_at  TIMESTAMPTZ NOT NULL,
+    attempts    INT NOT NULL DEFAULT 0,
+    used_at     TIMESTAMPTZ,
+    created_by  INT REFERENCES users(user_id),
+    created_at  TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS password_reset_user_idx ON password_reset(user_id);
+-- Sign-ins made before this moment stop working, so a reset logs out every other device.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMPTZ;

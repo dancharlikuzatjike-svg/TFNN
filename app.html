@@ -246,6 +246,26 @@ details.month .mbody{ padding:0 14px 8px; }
     <p style="text-align:center; margin-top:14px;">
       <button class="link-btn" id="show-register">New here? Create an account</button>
     </p>
+    <p style="text-align:center; margin-top:10px;">
+      <button class="link-btn" id="show-forgot">Forgot password?</button>
+    </p>
+  </div>
+
+  <div id="forgot-form" style="display:none;">
+    <p style="font-size:0.85rem; color:var(--ink-soft); margin:0 0 14px;">You need a 6-digit reset code. We can email one to the address saved on your account, or TFNN support can give you one.</p>
+    <label>Phone</label>
+    <input type="tel" id="forgot-phone" placeholder="0811234567">
+    <button class="link-btn" id="forgot-send" style="margin:-4px 0 14px;">Email me a reset code</button>
+    <div id="forgot-info" style="display:none; font-size:0.82rem; background:var(--paper-raised); border:1px solid var(--line); border-radius:6px; padding:10px 12px; margin-bottom:12px;"></div>
+    <label>Reset code</label>
+    <input type="text" id="forgot-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="6 digits">
+    <label>New password (8 or more characters)</label>
+    <input type="password" id="forgot-password" autocomplete="new-password">
+    <div class="error-msg" id="forgot-error" style="display:none;"></div>
+    <button class="primary" id="forgot-submit">Change password</button>
+    <p style="text-align:center; margin-top:14px;">
+      <button class="link-btn" id="forgot-back">Back to log in</button>
+    </p>
   </div>
 
   <p style="text-align:center; margin-top:18px;">
@@ -992,6 +1012,52 @@ document.getElementById('show-register').addEventListener('click', () => {
 document.getElementById('show-login').addEventListener('click', () => {
   document.getElementById('register-form').style.display = 'none';
   document.getElementById('login-form').style.display = 'block';
+});
+
+// Forgot password: get a reset code by email (or from TFNN support), then set a new password
+document.getElementById('show-forgot').addEventListener('click', () => {
+  document.getElementById('login-form').style.display = 'none';
+  document.getElementById('forgot-form').style.display = 'block';
+  document.getElementById('forgot-phone').value = document.getElementById('login-phone').value.trim();
+});
+document.getElementById('forgot-back').addEventListener('click', () => {
+  document.getElementById('forgot-form').style.display = 'none';
+  document.getElementById('login-form').style.display = 'block';
+});
+document.getElementById('forgot-send').addEventListener('click', async () => {
+  const errEl = document.getElementById('forgot-error'), info = document.getElementById('forgot-info');
+  errEl.style.display = 'none';
+  try {
+    const phone = document.getElementById('forgot-phone').value.trim();
+    if (!phone) throw new Error('Type your phone number first.');
+    const data = await api('/auth/forgot', { method: 'POST', body: { phone } });
+    info.textContent = data.message + (data.support ? ' Support: ' + data.support : '');
+    info.style.display = 'block';
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  }
+});
+document.getElementById('forgot-submit').addEventListener('click', async () => {
+  const errEl = document.getElementById('forgot-error');
+  errEl.style.display = 'none';
+  try {
+    const phone = document.getElementById('forgot-phone').value.trim();
+    const code = document.getElementById('forgot-code').value.trim();
+    const new_password = document.getElementById('forgot-password').value;
+    if (!phone || !code || !new_password) throw new Error('Fill in your phone, the reset code and a new password.');
+    await api('/auth/reset', { method: 'POST', body: { phone, code, new_password } });
+    document.getElementById('login-phone').value = phone;
+    document.getElementById('login-password').value = '';
+    document.getElementById('forgot-code').value = '';
+    document.getElementById('forgot-password').value = '';
+    document.getElementById('forgot-info').style.display = 'none';
+    document.getElementById('forgot-back').click();
+    showToast('Password changed. Log in with your new password.');
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  }
 });
 
 document.getElementById('login-submit').addEventListener('click', async () => {

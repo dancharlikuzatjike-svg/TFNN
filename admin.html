@@ -46,6 +46,30 @@
   .login h1 { color:var(--green); text-align:center; margin-bottom:4px; } .login p { text-align:center; color:var(--mute); margin-top:0; }
   table { width:100%; border-collapse:collapse; font-size:.85rem; } td, th { text-align:left; padding:6px 4px; border-bottom:1px solid var(--line); }
   .hide { display:none !important; }
+  .code-box { background:#fff7e0; border:1px solid #e6c36a; border-radius:12px; padding:14px; margin-bottom:12px; }
+  .code-box b.code { display:block; font-size:2rem; letter-spacing:.18em; margin:6px 0; font-family:ui-monospace, Menlo, Consolas, monospace; }
+
+  /* Laptop and desktop: menu down the left side and the full width used. Phones keep the layout above. */
+  @media (min-width:1000px) {
+    #app-view { padding-left:220px; }
+    nav { position:fixed; top:0; bottom:0; left:0; width:220px; flex-direction:column; border-bottom:0; border-right:1px solid var(--line); padding-top:66px; overflow:visible; z-index:6; }
+    nav::before { content:'TFNN Admin'; position:absolute; top:20px; left:22px; font-weight:700; font-size:1.1rem; color:var(--green); }
+    nav button { flex:none; text-align:left; padding:12px 22px; font-size:.95rem; border-bottom:0; border-left:3px solid transparent; cursor:pointer; }
+    nav button:hover { background:var(--bg); }
+    nav button.on { border-bottom-color:transparent; border-left-color:var(--green); background:var(--bg); }
+    header { padding:14px 32px; }
+    main { max-width:1240px; margin:0; padding:24px 32px 48px; }
+    .btn { cursor:pointer; }
+    .grid { grid-template-columns:repeat(4, 1fr); }
+    #tab-overview { display:grid; grid-template-columns:1fr 1fr; gap:0 14px; align-items:start; }
+    #tab-overview > .grid { grid-column:1 / -1; margin-bottom:12px; }
+    #tab-overview > .card { margin-top:0 !important; }
+    #u-search { max-width:420px; }
+    #u-list { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:12px; align-items:start; }
+    #u-list .card { margin-bottom:0; }
+    #u-list > .empty, #u-list > .msg { grid-column:1 / -1; }
+    #tab-billing, #tab-messages, #tab-prices { max-width:860px; }
+  }
 </style>
 </head>
 <body>
@@ -95,6 +119,7 @@
         <button class="chip" data-f="admin">Admins</button>
         <button class="chip" data-f="suspended">Suspended</button>
       </div>
+      <div id="u-reset"></div>
       <div id="u-list"><div class="empty">Loading…</div></div>
     </section>
 
@@ -293,6 +318,7 @@ function renderUsers() {
       '<div class="row">' +
         (!u.approved ? '<button class="btn sm" data-act="approve" data-id="' + u.user_id + '">Approve</button>' : '') +
         (u.active ? '<button class="btn sm red" data-act="suspend" data-id="' + u.user_id + '">Suspend</button>' : '<button class="btn sm blue" data-act="reactivate" data-id="' + u.user_id + '">Reactivate</button>') +
+        (u.active ? '<button class="btn sm grey" data-act="reset" data-id="' + u.user_id + '">Reset password</button>' : '') +
         '<select data-act="role" data-id="' + u.user_id + '" style="width:auto; margin:0; padding:7px;">' +
           ['farmer', 'vet', 'supplier', 'admin'].map(r => '<option value="' + r + '"' + (r === u.role ? ' selected' : '') + '>' + r + '</option>').join('') + '</select>' +
       '</div>') + '</div>';
@@ -301,6 +327,20 @@ function renderUsers() {
 async function patchUser(id, body, okMsg) {
   try { await api('/admin/users/' + id, { method: 'PATCH', body }); flash(okMsg, true); await loadUsers(); }
   catch (e) { flash(e.message); renderUsers(); }
+}
+// Makes a one-time code for someone who forgot their password. It is shown once, here.
+async function resetCode(id) {
+  const u = users.find(x => String(x.user_id) === String(id)); if (!u) return;
+  if (!confirm('Make a password reset code for ' + u.name + ' (' + u.phone + ')?\n\nOnly do this when you are sure you are talking to the real owner of this account.')) return;
+  try {
+    const d = await api('/admin/users/' + id + '/reset-code', { method: 'POST' });
+    $('u-reset').innerHTML = '<div class="code-box">Reset code for <b>' + esc(d.user.name) + '</b> (' + esc(d.user.phone) + ')' +
+      '<b class="code">' + esc(d.code) + '</b>' +
+      '<div class="u-sub">Give them this code by phone or WhatsApp. In the app they tap "Forgot password?", then type their phone, this code and a new password. It works once and expires in 24 hours. It will not be shown again.</div>' +
+      '<div class="row"><button class="btn sm grey" id="u-reset-close">Done</button></div></div>';
+    $('u-reset-close').addEventListener('click', () => { $('u-reset').innerHTML = ''; });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (e) { flash(e.message); }
 }
 $('u-search').addEventListener('input', renderUsers);
 $('u-chips').addEventListener('click', (e) => {
@@ -312,6 +352,7 @@ $('u-list').addEventListener('click', (e) => {
   if (act === 'approve') patchUser(id, { approved: true }, 'Account approved. They can now log in.');
   if (act === 'suspend' && confirm('Suspend this account? They will not be able to log in.')) patchUser(id, { active: false }, 'Account suspended.');
   if (act === 'reactivate') patchUser(id, { active: true }, 'Account reactivated.');
+  if (act === 'reset') resetCode(id);
 });
 $('u-list').addEventListener('change', (e) => {
   if (e.target.dataset.act !== 'role') return;
