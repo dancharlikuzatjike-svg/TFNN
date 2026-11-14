@@ -381,6 +381,9 @@ details.month .mbody{ padding:0 14px 8px; }
       <div class="ledger" id="valuation-ledger"></div>
       <div class="value-note" id="valuation-note" style="display:none;"></div>
 
+      <div class="section-title">This year's herd</div>
+      <div class="ledger" id="performance-ledger"></div>
+
       <div class="section-title">Herd prices</div>
       <div class="card">
         <p style="margin:0 0 6px; font-size:0.82rem; color:var(--ink-soft);">Enter what one animal of each kind is worth today. Every animal of that kind is valued at this price. For one special animal, tap it on the Herd tab and give it its own value.</p>
@@ -1624,6 +1627,31 @@ async function loadValuation(){
     noteEl.textContent = notes.join(' ');
     noteEl.style.display = notes.length ? 'block' : 'none';
     loadHerdPrices();
+    loadPerformance();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+// Simple herd scorecard for the current calendar year: births, deaths and money per animal.
+async function loadPerformance(){
+  try {
+    const from = new Date().getFullYear() + '-01-01';
+    const p = await api('/valuation/performance?from=' + from);
+    if (p.__offline) return;
+    const pct = v => (v === null ? '—' : v + '%');
+    const rows = [
+      ['Breeding females (active)', p.herd.breeding_females, 'cows, ewes and does'],
+      ['Births this year', p.births.count, p.births.per_100_females === null ? 'no breeding females yet' : p.births.per_100_females + ' born per 100 females'],
+      ['Deaths this year', p.deaths.count, p.deaths.count ? p.deaths.young + ' young, ' + p.deaths.adult + ' adult' : 'none recorded'],
+      ['Deaths as share of herd', pct(p.deaths.percent_of_herd), 'roughly, against the herd at the start of the year'],
+      ['Net per animal kept', p.money.net_per_animal === null ? '—' : money(p.money.net_per_animal), 'sales income minus expenses, this year'],
+    ];
+    document.getElementById('performance-ledger').innerHTML = rows.map(([label, value, note]) => `
+      <div class="ledger-row">
+        <div><div>${label}</div><div class="meta" style="color:var(--ink-soft); font-size:0.75rem;">${note}</div></div>
+        <div class="num">${value}</div>
+      </div>`).join('');
   } catch (err) {
     showToast(err.message, true);
   }

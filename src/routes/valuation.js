@@ -134,4 +134,84 @@ router.put('/prices', async (req, res, next) => {
   }
 });
 
+// GET /api/v1/valuation/performance?from=&to=
+// A simple herd scorecard for a time window, built only from what TFNN already records:
+// births and deaths (animal events), sales, expenses and the current herd.
+// Breeding females are the animals classed Cow, Ewe or Doe. Animals with no class are
+// not counted there, because they could be males.
+router.get('/performance', async (req, res, next) => {
+  try {
+    const { from, to } = req.query;
+    const owner = req.auth.user_id;
+
+    const herd = await db.query(
+      `SELECT
+         COUNT(*) FILTER (WHERE status = 'Active')::int AS active_count,
+         COUNT(*) FILTER (WHERE status = 'Active' AND class IN ('Cow','Ewe','Doe'))::int AS breeding_females,
+         COUNT(*) FILTER (WHERE status = 'Active' AND class IN ('Calf','Lamb','Kid'))::int AS young_active
+       FROM animal WHERE owner_id = $1`, [owner]);
+
+    const eventWindow = ['e.deleted_at IS NULL', 'a.owner_id = $1'];
+    const params = [owner];
+    if (from) { params.push(from); eventWindow.push(`e.event_date >= $${params.length}`); }
+    if (to) { params.push(to); eventWindow.push(`e.event_date <= $${params.length}`); }
+
+    const events = await db.query(
+      `SELECT
+         COUNT(*) FILTER (WHERE e.event_type = 'Born')::int AS births,
+         COUNT(*) FILTER (WHERE e.event_type = 'Died')::int AS deaths,
+         COUNT(*) FILTER (WHERE e.event_type = 'Died' AND a.class IN ('Calf','Lamb','Kid'))::int AS young_deaths
+       FROM animal_event e JOIN animal a ON a.animal_id = e.animal_id
+       WHERE ${eventWindow.join(' AND ')}`, params);
+
+    const saleWindow = ['seller_id = $1', 'deleted_at IS NULL', `payment_status != 'Cancelled'`];
+    const saleParams = [owner];
+    if (from) { saleParams.push(from); saleWindow.push(`sale_date >= $${saleParams.length}`); }
+    if (to) { saleParams.push(to); saleWindow.push(`sale_date <= $${saleParams.length}`); }
+    const sales = await db.query(
+      `SELECT COUNT(*)::int AS sale_count, COALESCE(SUM(price), 0)::numeric AS income
+       FROM sale WHERE ${saleWindow.join(' AND ')}`, saleParams);
+
+    const expWindow = ['farmer_id = $1', 'deleted_at IS NULL'];
+    const expParams = [owner];
+    if (from) { expParams.push(from); expWindow.push(`expense_date >= $${expParams.length}`); }
+    if (to) { expParams.push(to); expWindow.push(`expense_date <= $${expParams.length}`); }
+    const expenses = await db.query(
+      `SELECT COALESCE(SUM(amount), 0)::numeric AS total FROM expense WHERE ${expWindow.join(' AND ')}`, expParams);
+
+    const h = herd.rows[0], e = events.rows[0], s = sales.rows[0];
+    const spent = Number(expenses.rows[0].total);
+    const income = Number(s.income);
+    const net = income - spent;
+    // Deaths are taken out of the herd, so the herd at the start of the window is roughly today's count plus the deaths.
+    const startHerd = h.active_count + e.deaths;
+    const pct = (part, whole) => (whole > 0 ? Math.round((part / whole) * 1000) / 10 : null);
+
+    res.json({
+      from: from || null,
+      to: to || null,
+      herd: { active: h.active_count, breeding_females: h.breeding_females, young: h.young_active },
+      births: {
+        count: e.births,
+        per_100_females: h.breeding_females > 0 ? Math.round((e.births / h.breeding_females) * 100) : null,
+      },
+      deaths: {
+        count: e.deaths,
+        young: e.young_deaths,
+        adult: e.deaths - e.young_deaths,
+        percent_of_herd: pct(e.deaths, startHerd),
+      },
+      money: {
+        sales_count: s.sale_count,
+        income,
+        expenses: spent,
+        net,
+        net_per_animal: h.active_count > 0 ? Math.round((net / h.active_count) * 100) / 100 : null,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
