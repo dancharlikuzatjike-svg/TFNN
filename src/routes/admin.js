@@ -40,7 +40,7 @@ router.get('/animals', async (req, res, next) => {
 router.get('/stats', async (req, res, next) => {
   try {
     const [herd, orders, requests] = await Promise.all([
-      db.query(`SELECT species, COUNT(*)::int AS count FROM animal WHERE status = 'Active' GROUP BY species`),
+      db.query(`SELECT species, COALESCE(SUM(head_count), 0)::int AS count FROM animal WHERE status = 'Active' GROUP BY species`),
       db.query(`SELECT status, COUNT(*)::int AS count FROM feed_order GROUP BY status`),
       db.query(`SELECT urgency, status, COUNT(*)::int AS count FROM vet_request GROUP BY urgency, status`),
     ]);

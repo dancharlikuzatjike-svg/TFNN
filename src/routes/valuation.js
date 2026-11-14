@@ -75,7 +75,7 @@ router.get('/prices', async (req, res, next) => {
   try {
     const result = await db.query(
       `WITH herd AS (
-         SELECT species, COALESCE(class, '') AS class, COUNT(*)::int AS animal_count,
+         SELECT species, COALESCE(class, '') AS class, COALESCE(SUM(head_count), 0)::int AS animal_count,
                 COUNT(*) FILTER (WHERE estimated_value IS NOT NULL)::int AS own_value_count
          FROM animal WHERE owner_id = $1 AND status = 'Active'
          GROUP BY species, COALESCE(class, '')
@@ -149,9 +149,9 @@ router.get('/performance', async (req, res, next) => {
 
     const herd = await db.query(
       `SELECT
-         COUNT(*) FILTER (WHERE status = 'Active')::int AS active_count,
-         COUNT(*) FILTER (WHERE status = 'Active' AND class IN (${sqlList(BREEDING_FEMALE)}))::int AS breeding_females,
-         COUNT(*) FILTER (WHERE status = 'Active' AND class IN (${sqlList(YOUNG_CLASS)}))::int AS young_active
+         COALESCE(SUM(head_count) FILTER (WHERE status = 'Active'), 0)::int AS active_count,
+         COALESCE(SUM(head_count) FILTER (WHERE status = 'Active' AND class IN (${sqlList(BREEDING_FEMALE)})), 0)::int AS breeding_females,
+         COALESCE(SUM(head_count) FILTER (WHERE status = 'Active' AND class IN (${sqlList(YOUNG_CLASS)})), 0)::int AS young_active
        FROM animal WHERE owner_id = $1`, [owner]);
 
     const eventWindow = ['e.deleted_at IS NULL', 'a.owner_id = $1'];
@@ -161,23 +161,23 @@ router.get('/performance', async (req, res, next) => {
 
     const events = await db.query(
       `SELECT
-         COUNT(*) FILTER (WHERE e.event_type = 'Born')::int AS births,
-         COUNT(*) FILTER (WHERE e.event_type = 'Died')::int AS deaths,
-         COUNT(*) FILTER (WHERE e.event_type = 'Died' AND a.class IN (${sqlList(YOUNG_CLASS)}))::int AS young_deaths
+         COALESCE(SUM(COALESCE((e.metadata->>'count')::int, 1)) FILTER (WHERE e.event_type = 'Born'), 0)::int AS births,
+         COALESCE(SUM(COALESCE((e.metadata->>'count')::int, 1)) FILTER (WHERE e.event_type = 'Died'), 0)::int AS deaths,
+         COALESCE(SUM(COALESCE((e.metadata->>'count')::int, 1)) FILTER (WHERE e.event_type = 'Died' AND a.class IN (${sqlList(YOUNG_CLASS)})), 0)::int AS young_deaths
        FROM animal_event e JOIN animal a ON a.animal_id = e.animal_id
        WHERE ${eventWindow.join(' AND ')}`, params);
 
     // The same counts split by species, so one kind of animal does not hide another.
     const herdBySpecies = await db.query(
       `SELECT species,
-         COUNT(*) FILTER (WHERE status = 'Active')::int AS active,
-         COUNT(*) FILTER (WHERE status = 'Active' AND class IN (${sqlList(BREEDING_FEMALE)}))::int AS breeding_females
+         COALESCE(SUM(head_count) FILTER (WHERE status = 'Active'), 0)::int AS active,
+         COALESCE(SUM(head_count) FILTER (WHERE status = 'Active' AND class IN (${sqlList(BREEDING_FEMALE)})), 0)::int AS breeding_females
        FROM animal WHERE owner_id = $1 GROUP BY species`, [owner]);
     const eventsBySpecies = await db.query(
       `SELECT a.species,
-         COUNT(*) FILTER (WHERE e.event_type = 'Born')::int AS births,
-         COUNT(*) FILTER (WHERE e.event_type = 'Died')::int AS deaths,
-         COUNT(*) FILTER (WHERE e.event_type = 'Died' AND a.class IN (${sqlList(YOUNG_CLASS)}))::int AS young_deaths
+         COALESCE(SUM(COALESCE((e.metadata->>'count')::int, 1)) FILTER (WHERE e.event_type = 'Born'), 0)::int AS births,
+         COALESCE(SUM(COALESCE((e.metadata->>'count')::int, 1)) FILTER (WHERE e.event_type = 'Died'), 0)::int AS deaths,
+         COALESCE(SUM(COALESCE((e.metadata->>'count')::int, 1)) FILTER (WHERE e.event_type = 'Died' AND a.class IN (${sqlList(YOUNG_CLASS)})), 0)::int AS young_deaths
        FROM animal_event e JOIN animal a ON a.animal_id = e.animal_id
        WHERE ${eventWindow.join(' AND ')} GROUP BY a.species`, params);
 

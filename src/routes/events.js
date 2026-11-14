@@ -41,7 +41,7 @@ router.get('/', async (req, res, next) => {
 // logged, the same row is returned instead of a duplicate being created.
 router.post('/', async (req, res, next) => {
   try {
-    const { animal_id, event_date, event_type, notes, metadata, client_id } = req.body;
+    const { animal_id, event_date, event_type, notes, metadata, client_id, count } = req.body;
 
     if (!animal_id || !event_date || !event_type) {
       return res.status(400).json({ error: 'animal_id, event_date and event_type are required' });
@@ -58,15 +58,41 @@ router.post('/', async (req, res, next) => {
     }
 
     // Confirm the animal actually belongs to this farmer before logging anything against it
-    const owned = await db.query('SELECT 1 FROM animal WHERE animal_id = $1 AND owner_id = $2', [animal_id, req.auth.user_id]);
+    const owned = await db.query('SELECT head_count, status FROM animal WHERE animal_id = $1 AND owner_id = $2', [animal_id, req.auth.user_id]);
     if (owned.rows.length === 0) {
       return res.status(404).json({ error: 'Animal not found' });
+    }
+
+    // A flock record (e.g. 200 hens) can log several births or deaths at once with a count.
+    // The count moves the record's head count; without one, the event is logged as a single animal.
+    let meta = metadata || null;
+    if (count !== undefined) {
+      const n = Number(count);
+      if (!Number.isInteger(n) || n < 1 || n > 100000) {
+        return res.status(400).json({ error: 'count must be a whole number from 1 to 100000' });
+      }
+      if (event_type !== 'Born' && event_type !== 'Died') {
+        return res.status(400).json({ error: 'count can only be used with Born or Died' });
+      }
+      const { head_count } = owned.rows[0];
+      if (event_type === 'Died' && n > head_count) {
+        return res.status(400).json({ error: `This record only has ${head_count} animal${head_count === 1 ? '' : 's'}` });
+      }
+      const delta = event_type === 'Born' ? n : -n;
+      const updated = await db.query(
+        'UPDATE animal SET head_count = head_count + $1 WHERE animal_id = $2 RETURNING head_count',
+        [delta, animal_id]
+      );
+      if (updated.rows[0].head_count === 0) {
+        await db.query(`UPDATE animal SET status = 'Deceased' WHERE animal_id = $1`, [animal_id]);
+      }
+      meta = { ...(metadata || {}), count: n };
     }
 
     const result = await db.query(
       `INSERT INTO animal_event (animal_id, event_date, event_type, notes, metadata, created_by, client_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [animal_id, event_date, event_type, notes || null, metadata ? JSON.stringify(metadata) : null, req.auth.user_id, client_id || null]
+      [animal_id, event_date, event_type, notes || null, meta ? JSON.stringify(meta) : null, req.auth.user_id, client_id || null]
     );
     res.status(201).json({ event: result.rows[0] });
   } catch (err) {

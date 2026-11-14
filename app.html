@@ -490,6 +490,8 @@ details.month .mbody{ padding:0 14px 8px; }
   </datalist>
   <label for="aa-breed">Breed</label>
   <input type="text" id="aa-breed" maxlength="50" placeholder="e.g. Brahman, Dorper, Boer">
+  <label for="aa-heads">How many? (for a flock or herd of one kind)</label>
+  <input type="number" id="aa-heads" min="1" max="100000" step="1" inputmode="numeric" placeholder="1">
   <label for="aa-class">Class</label>
   <input type="text" id="aa-class" list="aa-class-list" maxlength="20" placeholder="Pick or type" autocomplete="off">
   <datalist id="aa-class-list"></datalist>
@@ -517,6 +519,10 @@ details.month .mbody{ padding:0 14px 8px; }
     <p id="ql-confirm-summary" style="margin-bottom:10px;"></p>
     <label>Date</label>
     <input type="date" id="ql-date-input">
+    <div id="ql-count-wrap" style="display:none;">
+      <label>How many? (for a flock)</label>
+      <input type="number" id="ql-count-input" min="1" max="100000" step="1" inputmode="numeric" placeholder="1">
+    </div>
     <label>Notes (optional)</label>
     <input type="text" id="ql-notes-input" placeholder="e.g. anthrax booster">
     <div style="display:flex; gap:10px; margin-bottom:14px;">
@@ -1171,13 +1177,14 @@ async function loadHerd(){
     const data = await api('/animals');
     if (data.__offline) return;
     animals = data.animals || [];
-    document.getElementById('herd-count').textContent = animals.length + ' animals';
+    const heads = animals.reduce((n, a) => n + (a.status === 'Active' ? (a.head_count || 1) : 0), 0);
+    document.getElementById('herd-count').textContent = heads + ' animals';
     document.getElementById('herd-empty').style.display = animals.length ? 'none' : 'block';
     document.getElementById('herd-list').innerHTML = animals.map(a => `
       <div class="row" data-id="${a.animal_id}">
         <div class="tag-badge ${speciesClass(a.species)}">${esc(a.tag_number)}</div>
         <div class="info">
-          <div class="name">${esc(a.breed || '')} ${a.species}</div>
+          <div class="name">${esc(a.breed || '')} ${esc(a.species)}${a.head_count > 1 ? ' · ' + a.head_count + ' animals' : ''}</div>
           <div class="meta">${a.class ? esc(a.class) + ' · ' : ''}${a.status}</div>
         </div>
         <div class="right">
@@ -1319,6 +1326,7 @@ function openAddAnimal(){
   document.getElementById('aa-tag').value = '';
   document.getElementById('aa-breed').value = '';
   document.getElementById('aa-dob').value = '';
+  document.getElementById('aa-heads').value = '';
   document.getElementById('aa-dob').max = new Date().toISOString().slice(0, 10);
   document.getElementById('aa-error').style.display = 'none';
   fillClassOptions();
@@ -1338,6 +1346,9 @@ async function saveAnimal(addAnother){
   const breed = document.getElementById('aa-breed').value.trim();
   const cls = document.getElementById('aa-class').value;
   const dob = document.getElementById('aa-dob').value;
+  const headsRaw = document.getElementById('aa-heads').value.trim();
+  const heads = headsRaw === '' ? 1 : Number(headsRaw);
+  if (!Number.isInteger(heads) || heads < 1 || heads > 100000) return fail('How many animals? Enter a whole number, 1 or more.');
 
   if (!tag) return fail('Please enter the tag number.');
   if (dob && dob > new Date().toISOString().slice(0, 10)) return fail('Date of birth cannot be in the future.');
@@ -1352,6 +1363,7 @@ async function saveAnimal(addAnother){
     if (breed) body.breed = breed;
     if (cls) body.class = cls;
     if (dob) body.date_of_birth = dob;
+    if (heads > 1) body.head_count = heads;
     const data = await api('/animals', { method: 'POST', body });
 
     if (data.__queued) {
@@ -1414,6 +1426,8 @@ document.getElementById('fab-quicklog').addEventListener('click', () => {
           document.getElementById('ql-confirm-summary').textContent = ql.type + ' — ' + ql.animal.tag_number;
           document.getElementById('ql-date-input').valueAsDate = new Date();
           document.getElementById('ql-notes-input').value = '';
+          document.getElementById('ql-count-input').value = '';
+          document.getElementById('ql-count-wrap').style.display = (ql.type === 'Born' || ql.type === 'Died') ? 'block' : 'none';
           showQlStep(3);
         });
       });
@@ -1442,6 +1456,8 @@ document.getElementById('ql-submit').addEventListener('click', async () => {
         event_date: document.getElementById('ql-date-input').value,
         event_type: ql.type,
         notes: document.getElementById('ql-notes-input').value || undefined,
+        count: (ql.type === 'Born' || ql.type === 'Died') && document.getElementById('ql-count-input').value.trim() !== ''
+          ? Number(document.getElementById('ql-count-input').value) : undefined,
         client_id: crypto.randomUUID(),
       },
     });

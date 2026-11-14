@@ -34,7 +34,11 @@ router.get('/', async (req, res, next) => {
 // write never creates a duplicate animal - it just returns the one already made.
 router.post('/', async (req, res, next) => {
   try {
-    const { tag_number, species, breed, class: cls, date_of_birth, mother_id, father_id, client_id } = req.body;
+    const { tag_number, species, breed, class: cls, date_of_birth, mother_id, father_id, client_id, head_count } = req.body;
+    const heads = head_count === undefined || head_count === null || head_count === '' ? 1 : Number(head_count);
+    if (!Number.isInteger(heads) || heads < 1 || heads > 100000) {
+      return res.status(400).json({ error: 'head_count must be a whole number from 1 to 100000' });
+    }
 
     const speciesName = normaliseSpecies(species);
     if (!tag_number || !speciesName) {
@@ -49,11 +53,11 @@ router.post('/', async (req, res, next) => {
     }
 
     const result = await db.query(
-      `INSERT INTO animal (tag_number, species, breed, class, date_of_birth, owner_id, mother_id, father_id, client_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO animal (tag_number, species, breed, class, date_of_birth, owner_id, mother_id, father_id, client_id, head_count)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
       [tag_number, speciesName, breed || null, cls || null, date_of_birth || null,
-       req.auth.user_id, mother_id || null, father_id || null, client_id || null]
+       req.auth.user_id, mother_id || null, father_id || null, client_id || null, heads]
     );
     res.status(201).json({ animal: result.rows[0] });
   } catch (err) {
@@ -103,7 +107,14 @@ router.patch('/:id', async (req, res, next) => {
       req.body.species = speciesName;
     }
 
-    const allowedFields = ['tag_number', 'species', 'breed', 'class', 'date_of_birth', 'mother_id', 'father_id', 'status', 'estimated_value'];
+    if (req.body.head_count !== undefined) {
+      const heads = Number(req.body.head_count);
+      if (!Number.isInteger(heads) || heads < 1 || heads > 100000) {
+        return res.status(400).json({ error: 'head_count must be a whole number from 1 to 100000' });
+      }
+      req.body.head_count = heads;
+    }
+    const allowedFields = ['tag_number', 'species', 'breed', 'class', 'date_of_birth', 'mother_id', 'father_id', 'status', 'estimated_value', 'head_count'];
     const updates = [];
     const params = [];
 

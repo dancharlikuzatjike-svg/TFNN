@@ -392,3 +392,6 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMPTZ;
 ALTER TABLE animal DROP CONSTRAINT IF EXISTS animal_species_check;
 ALTER TABLE animal ALTER COLUMN species TYPE VARCHAR(40);
 ALTER TABLE class_price ALTER COLUMN species TYPE VARCHAR(40);
+
+-- A flock is one record with a head count (e.g. "Hens: 200"). Single animals have head_count 1.
+ALTER TABLE animal ADD COLUMN IF NOT EXISTS head_count INT NOT NULL DEFAULT 1;

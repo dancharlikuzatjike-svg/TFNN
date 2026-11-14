@@ -45,7 +45,9 @@ const VALUE_JOINS = `
   LEFT JOIN class_price cp ON cp.owner_id = a.owner_id AND cp.species = a.species AND cp.class = COALESCE(a.class, '')
   LEFT JOIN class_price cpa ON COALESCE(a.class, '') = '' AND cpa.owner_id = a.owner_id AND cpa.species = a.species AND cpa.class = ${adultOf('a.species')}
   LEFT JOIN reference_price rp ON rp.species = a.species AND rp.class = COALESCE(NULLIF(a.class, ''), ${adultOf('a.species')})`;
-const VALUE_EXPR = 'COALESCE(a.estimated_value, cp.price, cpa.price, rp.price)';
+// A price is per head. The value of a record is that price times its head count (a flock is many heads).
+const UNIT_PRICE = 'COALESCE(a.estimated_value, cp.price, cpa.price, rp.price)';
+const VALUE_EXPR = `(${UNIT_PRICE} * a.head_count)`;
 const VALUE_COLUMNS = `
   ${VALUE_EXPR} AS value,
   CASE WHEN a.estimated_value IS NOT NULL THEN 'animal'
@@ -81,12 +83,12 @@ function parsePriceRows(input) {
 
 async function herdTotals(ownerId) {
   const r = await db.query(
-    `SELECT COUNT(*)::int AS animal_count,
+    `SELECT COALESCE(SUM(v.head_count), 0)::int AS animal_count,
             COALESCE(SUM(v.value), 0)::numeric AS total,
             COUNT(*) FILTER (WHERE v.value IS NULL)::int AS unpriced_count,
             COUNT(*) FILTER (WHERE v.value_source = 'market')::int AS market_priced_count,
             COUNT(*) FILTER (WHERE v.value_assumed_class IS NOT NULL)::int AS assumed_class_count
-     FROM (SELECT ${VALUE_COLUMNS} FROM animal a ${VALUE_JOINS}
+     FROM (SELECT ${VALUE_COLUMNS}, a.head_count FROM animal a ${VALUE_JOINS}
            WHERE a.owner_id = $1 AND a.status = 'Active') v`,
     [ownerId]
   );
