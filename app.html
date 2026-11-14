@@ -153,6 +153,46 @@ details.month .mbody{ padding:0 14px 8px; }
 .toast{ position:fixed; left:50%; bottom:78px; transform:translate(-50%,20px); background:var(--ink); color:var(--paper); padding:12px 20px; border-radius:30px; font-size:0.85rem; opacity:0; pointer-events:none; transition:all 0.25s ease; z-index:30; white-space:nowrap; }
 .toast.show{ opacity:1; transform:translate(-50%,0); }
 .toast.error{ background:var(--danger); }
+
+/* ---- Bigger screens. The phone layout above is the base; these only add to it. ---- */
+/* Tablet: same layout, wider column */
+@media (min-width:700px){
+  body, .tabbar{ max-width:760px; }
+  .sheet{ max-width:560px; }
+  .fab{ transform:translateX(296px); }
+  #screen-auth{ width:100%; max-width:440px; margin:0 auto; }
+}
+/* Laptop and desktop: menu down the left side, lists as a grid of cards, sheets as centred windows */
+@media (min-width:1000px){
+  body{ max-width:none; margin:0; }
+  #screen-app{ padding-left:228px; }
+  .tabbar{ top:0; bottom:0; left:0; transform:none; width:228px; max-width:none; flex-direction:column; gap:4px; padding:22px 14px; border-top:none; border-right:1px solid var(--line); }
+  .tabbar::before{ content:'TFNN'; font-family:'Roboto Slab',serif; font-weight:700; font-size:1.25rem; letter-spacing:.04em; padding:0 14px 18px; }
+  .tabbar button{ flex:none; flex-direction:row; justify-content:flex-start; gap:12px; padding:11px 14px; font-size:0.92rem; border-radius:var(--radius); }
+  .tabbar button svg{ width:20px; height:20px; }
+  .tabbar button:hover{ background:var(--paper); }
+  .tabbar button.active{ background:var(--paper); font-weight:600; }
+  .topbar{ padding:18px 40px 14px; }
+  .topbar .farm{ font-size:1.35rem; }
+  .content{ max-width:1240px; padding:26px 40px 60px; }
+  .section-title{ font-size:1.1rem; }
+  #herd-list, #tasks-list, #sales-list, #expenses-list, #bull-list, #mkt-browse-list, #mkt-mine-list{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(330px, 1fr)); gap:12px; align-items:start; }
+  #herd-list .row, #tasks-list .row, #sales-list .row, #expenses-list .row, #bull-list .row, #mkt-browse-list .row, #mkt-mine-list .row{
+    border:1px solid var(--line); border-radius:var(--radius); background:var(--paper-raised); padding:14px 16px; }
+  #herd-list .row:hover, #tasks-list .row:hover, #mkt-browse-list .row:hover, #mkt-mine-list .row:hover{ border-color:var(--ink-soft); }
+  #cal-months{ display:grid; grid-template-columns:repeat(auto-fill, minmax(360px, 1fr)); gap:10px; align-items:start; }
+  #cal-months details.month{ margin-bottom:0; }
+  .ledger, #panel-valuation .card, .season-banner, .seg{ max-width:720px; }
+  .content button.primary{ max-width:420px; }
+  #panel-herd div:has(> #add-animal-btn){ max-width:560px; }
+  .fab{ left:auto; right:40px; bottom:36px; transform:none; }
+  .toast{ bottom:36px; }
+  .sheet{ top:50%; bottom:auto; max-width:560px; max-height:88vh; border-radius:16px; padding:22px 28px 28px;
+    transform:translate(-50%,-46%); opacity:0; visibility:hidden; transition:transform 0.2s ease, opacity 0.2s ease, visibility 0.2s; }
+  .sheet.open{ transform:translate(-50%,-50%); opacity:1; visibility:visible; }
+  .sheet-handle{ display:none; }
+}
 </style>
 </head>
 <body>
