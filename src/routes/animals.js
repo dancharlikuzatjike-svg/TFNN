@@ -134,11 +134,35 @@ router.patch('/:id', async (req, res, next) => {
       return res.status(400).json({ error: 'No valid fields provided to update' });
     }
 
+    // Correcting the species or the head count is a fix to the record, not a birth or a death.
+    // It needs a short reason, and the change is written into the animal's history.
+    const changes = [];
+    if (req.body.species !== undefined && req.body.species !== animal.species) {
+      changes.push(`species ${animal.species} → ${req.body.species}`);
+    }
+    if (req.body.head_count !== undefined && req.body.head_count !== animal.head_count) {
+      changes.push(`head count ${animal.head_count} → ${req.body.head_count}`);
+    }
+    let reason = null;
+    if (changes.length > 0) {
+      reason = String(req.body.reason || '').trim();
+      if (reason.length < 3 || reason.length > 200) {
+        return res.status(400).json({ error: 'Give a short reason for the correction (3 to 200 characters)' });
+      }
+    }
+
     params.push(animal.animal_id);
     const result = await db.query(
       `UPDATE animal SET ${updates.join(', ')} WHERE animal_id = $${params.length} RETURNING *`,
       params
     );
+    if (changes.length > 0) {
+      await db.query(
+        `INSERT INTO animal_event (animal_id, event_date, event_type, notes, created_by)
+         VALUES ($1, CURRENT_DATE, 'Other', $2, $3)`,
+        [animal.animal_id, `Correction: ${changes.join('; ')}. Reason: ${reason}`, req.auth.user_id]
+      );
+    }
     res.json({ animal: result.rows[0] });
   } catch (err) {
     next(err);

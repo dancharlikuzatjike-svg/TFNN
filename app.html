@@ -471,6 +471,17 @@ details.month .mbody{ padding:0 14px 8px; }
     </div>
     <div class="meta" id="sheet-value-note" style="color:var(--ink-soft); font-size:0.78rem; margin-top:8px;"></div>
   </div>
+  <div class="card" id="sheet-correct-card">
+    <div class="section-title" style="margin-top:0;">Correct this record</div>
+    <label for="sheet-correct-species">Species</label>
+    <input type="text" id="sheet-correct-species" list="aa-species-list" maxlength="40" autocomplete="off">
+    <label for="sheet-correct-heads">How many animals</label>
+    <input type="number" id="sheet-correct-heads" min="1" max="100000" step="1" inputmode="numeric">
+    <label for="sheet-correct-reason">Why are you changing it?</label>
+    <input type="text" id="sheet-correct-reason" maxlength="200" placeholder="e.g. counted again, wrong species entered">
+    <button class="primary" id="sheet-correct-save">Save correction</button>
+    <div class="meta" style="color:var(--ink-soft); font-size:0.78rem; margin-top:8px;">A correction is not a birth or a death. It is written into this animal's history with your reason.</div>
+  </div>
   <div class="timeline" id="sheet-timeline"></div>
   <div id="sheet-photo-wrap" style="margin-top:16px;"></div>
   <button class="link-btn" id="sheet-add-photo-btn" style="margin-top:10px; border:1px dashed var(--line); border-radius:var(--radius); padding:10px; width:100%; text-decoration:none;">📷 Add / update photo</button>
@@ -1233,9 +1244,39 @@ function setupSheetValue(animal){
   };
 }
 
+// Fixes the species or head count of a record. Not a birth or a death, so it needs a reason.
+function setupSheetCorrect(animal){
+  document.getElementById('sheet-correct-species').value = animal.species;
+  document.getElementById('sheet-correct-heads').value = animal.head_count || 1;
+  document.getElementById('sheet-correct-reason').value = '';
+  document.getElementById('sheet-correct-save').onclick = async () => {
+    const species = canonSpecies(document.getElementById('sheet-correct-species').value);
+    const headsRaw = document.getElementById('sheet-correct-heads').value.trim();
+    const heads = Number(headsRaw);
+    if (!species) return showToast('Enter the species', true);
+    if (!Number.isInteger(heads) || heads < 1 || heads > 100000) return showToast('Enter how many animals, 1 or more', true);
+    const body = {};
+    if (species !== animal.species) body.species = species;
+    if (heads !== (animal.head_count || 1)) body.head_count = heads;
+    if (Object.keys(body).length === 0) return showToast('Nothing has changed');
+    const reason = document.getElementById('sheet-correct-reason').value.trim();
+    if (reason.length < 3) return showToast('Give a short reason for the change', true);
+    body.reason = reason;
+    try {
+      const data = await api('/animals/' + animal.animal_id, { method: 'PATCH', body });
+      if (data.__queued) { showToast('No connection — saved on this phone, will sync when online'); return; }
+      showToast('Record corrected');
+      await loadHerd();
+      const fresh = animals.find(a => String(a.animal_id) === String(animal.animal_id));
+      if (fresh) { setupSheetCorrect(fresh); setupSheetValue(fresh); }
+    } catch (err) { showToast(err.message, true); }
+  };
+}
+
 async function openAnimalSheet(animalId){
   const animal = animals.find(a => String(a.animal_id) === String(animalId));
   if (!animal) return;
+  setupSheetCorrect(animal);
   document.getElementById('sheet-tag').textContent = animal.tag_number;
   document.getElementById('sheet-tag').className = 'tag-badge ' + speciesClass(animal.species);
   document.getElementById('sheet-name').textContent = (animal.breed || '') + ' ' + animal.species;
