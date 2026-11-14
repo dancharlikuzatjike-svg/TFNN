@@ -1539,6 +1539,9 @@ document.getElementById('ql-submit').addEventListener('click', async () => {
 // ---- TASKS ----
 async function loadTasks(){
   try {
+    // Adds this week's farm round the first time the list is opened this week (safe to repeat)
+    const round = await api('/tasks/weekly-round', { method: 'POST', body: {} });
+    if (!round.__offline && round.added && round.added.length) showToast("This week's farm round is ready");
     const data = await api('/tasks?done=false');
     if (data.__offline) return;
     const tasks = data.tasks || [];

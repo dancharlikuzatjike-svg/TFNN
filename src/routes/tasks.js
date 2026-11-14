@@ -1,6 +1,9 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { BREEDING_FEMALE, YOUNG_CLASS } = require('../utils/herdValue');
+
+const sqlList = (names) => names.map((n) => `'${n}'`).join(',');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -118,6 +121,53 @@ router.get('/suggested', async (req, res, next) => {
     }));
 
     res.json({ suggestions });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/tasks/weekly-round
+// Adds this week's farm round (Monday to Sunday) from what is on the herd. It is safe to call
+// any number of times: a task already added for this week is not added again.
+router.post('/weekly-round', async (req, res, next) => {
+  try {
+    const owner = req.auth.user_id;
+    const herd = await db.query(
+      `SELECT
+         COALESCE(SUM(head_count) FILTER (WHERE class IN (${sqlList(BREEDING_FEMALE)})), 0)::int AS females,
+         COALESCE(SUM(head_count) FILTER (WHERE class IN (${sqlList(YOUNG_CLASS)})), 0)::int AS young
+       FROM animal WHERE owner_id = $1 AND status = 'Active'`, [owner]);
+    const unvaccinated = await db.query(
+      `SELECT COALESCE(SUM(a.head_count), 0)::int AS n FROM animal a
+       WHERE a.owner_id = $1 AND a.status = 'Active'
+         AND NOT EXISTS (SELECT 1 FROM animal_event e
+                         WHERE e.animal_id = a.animal_id AND e.event_type = 'Vaccinated'
+                           AND e.deleted_at IS NULL AND e.event_date >= CURRENT_DATE - 180)`, [owner]);
+    const week = await db.query(`SELECT (date_trunc('week', CURRENT_DATE) + INTERVAL '6 days')::date AS due`);
+    const due = week.rows[0].due;
+
+    const { females, young } = herd.rows[0];
+    const vacc = unvaccinated.rows[0].n;
+    const titles = [
+      'Walk the herd: count the animals and look for any sick or injured',
+      'Check water and feed for the week',
+    ];
+    if (females > 0) titles.push('Check females close to giving birth; have a clean, dry place ready');
+    if (young > 0) titles.push('Check young animals are feeding and growing well');
+    if (vacc > 0) titles.push(`Vaccinations due for ${vacc} animal${vacc === 1 ? '' : 's'} (none in the last 6 months)`);
+
+    const added = [];
+    for (const title of titles) {
+      const r = await db.query(
+        `INSERT INTO task (farmer_id, title, due_date, source)
+         SELECT $1::int, $2::varchar, $3::date, 'weekly'
+         WHERE NOT EXISTS (SELECT 1 FROM task WHERE farmer_id = $1::int AND source = 'weekly' AND title = $2::varchar AND due_date = $3::date)
+         RETURNING task_id, title`,
+        [owner, title.slice(0, 150), due]
+      );
+      if (r.rows.length) added.push(r.rows[0].title);
+    }
+    res.json({ due, added });
   } catch (err) {
     next(err);
   }
