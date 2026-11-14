@@ -1,0 +1,32 @@
+name: Weekly database backup
+# Copies the whole TFNN database once a week, locks the copy with a password, and keeps it
+# here on GitHub for 90 days (Actions > Weekly database backup > a run > Artifacts).
+# The copy is encrypted before it leaves the job, so it is unreadable without the password.
+# Needs two repository secrets:
+#   BACKUP_DATABASE_URL - the same value as DATABASE_URL on the Render service
+#   BACKUP_PASSPHRASE   - a password of 12+ characters that you choose and keep safe
+# How to restore a backup is written at the top of tools/backup-db.sh.
+on:
+  schedule:
+    - cron: '23 1 * * 0' # Sundays, 03:23 Windhoek
+  workflow_dispatch:
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Back up the database
+        env:
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: tools/backup-db.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tfnn-backup-${{ github.run_id }}
+          path: tfnn-backup-*.dump.gpg
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
