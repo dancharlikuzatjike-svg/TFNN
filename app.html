@@ -384,6 +384,9 @@ details.month .mbody{ padding:0 14px 8px; }
       <div class="section-title">This year's herd</div>
       <div class="ledger" id="performance-ledger"></div>
 
+      <div class="section-title">By species</div>
+      <div class="ledger" id="performance-species"></div>
+
       <div class="section-title">Herd prices</div>
       <div class="card">
         <p style="margin:0 0 6px; font-size:0.82rem; color:var(--ink-soft);">Enter what one animal of each kind is worth today. Every animal of that kind is valued at this price. For one special animal, tap it on the Herd tab and give it its own value.</p>
@@ -1652,6 +1655,13 @@ async function loadPerformance(){
         <div><div>${label}</div><div class="meta" style="color:var(--ink-soft); font-size:0.75rem;">${note}</div></div>
         <div class="num">${value}</div>
       </div>`).join('');
+    const SP_NAMES = { Cattle: 'Cattle', Sheep: 'Sheep', Goat: 'Goats' };
+    const spRows = Object.entries(p.by_species).filter(([, d]) => d.active || d.births || d.deaths);
+    document.getElementById('performance-species').innerHTML = spRows.length ? spRows.map(([sp, d]) => `
+      <div class="ledger-row">
+        <div><div>${SP_NAMES[sp]}</div><div class="meta" style="color:var(--ink-soft); font-size:0.75rem;">${d.breeding_females} breeding females · ${d.active} active · ${d.deaths} died (${d.young_deaths} young)</div></div>
+        <div class="num">${d.births} born${d.per_100_females === null ? '' : ' · ' + d.per_100_females + ' per 100'}</div>
+      </div>`).join('') : '<div class="meta" style="color:var(--ink-soft); font-size:0.8rem;">No animals or events in this year yet.</div>';
   } catch (err) {
     showToast(err.message, true);
   }

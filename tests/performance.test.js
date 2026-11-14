@@ -45,6 +45,12 @@ test('performance counts births, deaths, sales and expenses for a window', async
   assert.strictEqual(p.money.income, 3000);
   assert.strictEqual(p.money.expenses, 500);
   assert.strictEqual(p.money.net, 2500);
+  // split by species: the goats carry all the births and the young death, cattle have none
+  assert.strictEqual(p.by_species.Goat.breeding_females, 1);
+  assert.strictEqual(p.by_species.Goat.births, 2);
+  assert.strictEqual(p.by_species.Goat.young_deaths, 1);
+  assert.strictEqual(p.by_species.Cattle.births, 0);
+  assert.strictEqual(p.by_species.Cattle.per_100_females, null);
 });
 
 test('performance with no animals returns nulls rather than dividing by zero', async () => {

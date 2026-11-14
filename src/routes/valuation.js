@@ -164,6 +164,20 @@ router.get('/performance', async (req, res, next) => {
        FROM animal_event e JOIN animal a ON a.animal_id = e.animal_id
        WHERE ${eventWindow.join(' AND ')}`, params);
 
+    // The same counts split by species (Cattle, Sheep, Goat), so one species does not hide another.
+    const herdBySpecies = await db.query(
+      `SELECT species,
+         COUNT(*) FILTER (WHERE status = 'Active')::int AS active,
+         COUNT(*) FILTER (WHERE status = 'Active' AND class IN ('Cow','Ewe','Doe'))::int AS breeding_females
+       FROM animal WHERE owner_id = $1 GROUP BY species`, [owner]);
+    const eventsBySpecies = await db.query(
+      `SELECT a.species,
+         COUNT(*) FILTER (WHERE e.event_type = 'Born')::int AS births,
+         COUNT(*) FILTER (WHERE e.event_type = 'Died')::int AS deaths,
+         COUNT(*) FILTER (WHERE e.event_type = 'Died' AND a.class IN ('Calf','Lamb','Kid'))::int AS young_deaths
+       FROM animal_event e JOIN animal a ON a.animal_id = e.animal_id
+       WHERE ${eventWindow.join(' AND ')} GROUP BY a.species`, params);
+
     const saleWindow = ['seller_id = $1', 'deleted_at IS NULL', `payment_status != 'Cancelled'`];
     const saleParams = [owner];
     if (from) { saleParams.push(from); saleWindow.push(`sale_date >= $${saleParams.length}`); }
@@ -187,10 +201,26 @@ router.get('/performance', async (req, res, next) => {
     const startHerd = h.active_count + e.deaths;
     const pct = (part, whole) => (whole > 0 ? Math.round((part / whole) * 1000) / 10 : null);
 
+    const bySpecies = {};
+    for (const sp of ['Cattle', 'Sheep', 'Goat']) {
+      const hr = herdBySpecies.rows.find((r) => r.species === sp) || { active: 0, breeding_females: 0 };
+      const er = eventsBySpecies.rows.find((r) => r.species === sp) || { births: 0, deaths: 0, young_deaths: 0 };
+      bySpecies[sp] = {
+        active: hr.active,
+        breeding_females: hr.breeding_females,
+        births: er.births,
+        per_100_females: hr.breeding_females > 0 ? Math.round((er.births / hr.breeding_females) * 100) : null,
+        deaths: er.deaths,
+        young_deaths: er.young_deaths,
+        percent_of_herd: pct(er.deaths, hr.active + er.deaths),
+      };
+    }
+
     res.json({
       from: from || null,
       to: to || null,
       herd: { active: h.active_count, breeding_females: h.breeding_females, young: h.young_active },
+      by_species: bySpecies,
       births: {
         count: e.births,
         per_100_females: h.breeding_females > 0 ? Math.round((e.births / h.breeding_females) * 100) : null,
