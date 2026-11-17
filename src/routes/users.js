@@ -11,7 +11,7 @@ router.use(requireAuth);
 router.get('/me', async (req, res, next) => {
   try {
     const result = await db.query(
-      'SELECT user_id, name, phone, email, email_opt_out, role, farm_location, district FROM users WHERE user_id = $1',
+      'SELECT user_id, name, phone, email, email_opt_out, whatsapp_opt_in, role, farm_location, district FROM users WHERE user_id = $1',
       [req.auth.user_id]
     );
     res.json({ user: result.rows[0] });
@@ -24,7 +24,7 @@ router.get('/me', async (req, res, next) => {
 // Send email: "" to remove the address.
 router.patch('/me', async (req, res, next) => {
   try {
-    const { name, farm_location, district, email_opt_out } = req.body;
+    const { name, farm_location, district, email_opt_out, whatsapp_opt_in } = req.body;
     const rawEmail = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : undefined;
     if (district && !DISTRICTS.includes(district)) {
       return res.status(400).json({ error: `district must be one of: ${DISTRICTS.join(', ')}` });
@@ -34,6 +34,9 @@ router.patch('/me', async (req, res, next) => {
     }
     if (email_opt_out !== undefined && typeof email_opt_out !== 'boolean') {
       return res.status(400).json({ error: 'email_opt_out must be true or false' });
+    }
+    if (whatsapp_opt_in !== undefined && typeof whatsapp_opt_in !== 'boolean') {
+      return res.status(400).json({ error: 'whatsapp_opt_in must be true or false' });
     }
 
     const before = await db.query('SELECT email FROM users WHERE user_id = $1', [req.auth.user_id]);
@@ -45,10 +48,11 @@ router.patch('/me', async (req, res, next) => {
          farm_location = COALESCE($2, farm_location),
          district = COALESCE($3, district),
          email = CASE WHEN $6 THEN NULL ELSE COALESCE($4, email) END,
-         email_opt_out = COALESCE($7, email_opt_out)
+         email_opt_out = COALESCE($7, email_opt_out),
+         whatsapp_opt_in = COALESCE($8, whatsapp_opt_in)
        WHERE user_id = $5
-       RETURNING user_id, name, phone, email, email_opt_out, role, farm_location, district`,
-      [name || null, farm_location || null, district || null, rawEmail || null, req.auth.user_id, clearEmail, email_opt_out === undefined ? null : email_opt_out]
+       RETURNING user_id, name, phone, email, email_opt_out, whatsapp_opt_in, role, farm_location, district`,
+      [name || null, farm_location || null, district || null, rawEmail || null, req.auth.user_id, clearEmail, email_opt_out === undefined ? null : email_opt_out, whatsapp_opt_in === undefined ? null : whatsapp_opt_in]
     );
     const user = result.rows[0];
 
