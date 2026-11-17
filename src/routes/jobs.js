@@ -1,6 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const { sendTaskReminders } = require('../utils/reminders');
+const { sendWhatsAppReminders } = require('../utils/whatsapp');
 const { parsePriceRows, setReferencePrices } = require('../utils/herdValue');
 const { submitProposals } = require('../utils/priceAgent');
 
@@ -20,10 +21,14 @@ function requireCronSecret(req, res, next) {
   next();
 }
 
-// POST /api/v1/jobs/task-reminders  - emails each farmer a once-a-day digest of due tasks
+// POST /api/v1/jobs/task-reminders  - emails each farmer a once-a-day digest of due tasks, and sends the
+// same digest on WhatsApp to farmers who turned that on (only once WhatsApp is set up on the server)
 router.post('/task-reminders', requireCronSecret, async (req, res, next) => {
   try {
-    res.json({ result: await sendTaskReminders() });
+    const result = await sendTaskReminders();
+    let whatsapp;
+    try { whatsapp = await sendWhatsAppReminders(); } catch (e) { whatsapp = { error: e.message }; } // never let WhatsApp stop the email run
+    res.json({ result, whatsapp });
   } catch (err) {
     next(err);
   }

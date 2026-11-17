@@ -112,6 +112,10 @@ details.month .mbody{ padding:0 14px 8px; }
 .todo .tx em{ display:block; font-style:normal; color:var(--ink-soft); font-size:0.78rem; margin-top:2px; }
 .todo button{ flex:none; border:1px solid var(--line); background:none; border-radius:14px; padding:4px 10px; font-size:0.74rem; cursor:pointer; }
 .todo button:disabled{ opacity:.5; }
+.mgroup{ font-size:0.7rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-soft); margin:12px 0 2px; }
+.mactions{ display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 6px; }
+.mactions button{ border:1px solid var(--line); background:none; border-radius:14px; padding:5px 12px; font-size:0.76rem; cursor:pointer; }
+.todo .acts{ display:flex; flex-direction:column; gap:4px; }
 .card{ border:1px solid var(--line); border-radius:var(--radius); background:var(--paper-raised); padding:14px; margin-bottom:12px; }
 .card h3{ margin:0 0 6px; font-size:1rem; }
 .chips{ display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
@@ -343,6 +347,7 @@ details.month .mbody{ padding:0 14px 8px; }
       </div>
       <div id="plan-cal">
         <div class="season-banner" id="season-banner"></div>
+        <p class="cal-note" id="plan-species"></p>
         <p class="cal-note">A general guide for Namibia. Rain and frost differ between the north and south, so adjust the dates for your farm and confirm vaccines and treatments with your vet or state vet. Tap <strong>+ Task</strong> to put a job in your Tasks list.</p>
         <div id="cal-months"></div>
       </div>
@@ -660,6 +665,7 @@ details.month .mbody{ padding:0 14px 8px; }
   <label>Email (for email notifications)</label>
   <input type="email" id="settings-email" placeholder="you@example.com">
   <label style="display:flex; align-items:center; gap:8px; margin:6px 0 12px;"><input type="checkbox" id="settings-email-on" style="width:auto; margin:0;"> Email me alerts, reminders and news</label>
+  <label style="display:flex; align-items:center; gap:8px; margin:6px 0 12px;"><input type="checkbox" id="settings-wa-on" style="width:auto; margin:0;"> WhatsApp me my task reminders (sent to the phone number on your account)</label>
   <label>District</label>
   <select id="settings-district">
     <option value="">— Not set —</option>
@@ -2147,6 +2153,7 @@ document.getElementById('settings-btn').addEventListener('click', async () => {
     document.getElementById('settings-email').value = data.user.email || '';
     document.getElementById('settings-district').value = data.user.district || '';
     document.getElementById('settings-email-on').checked = !data.user.email_opt_out;
+    document.getElementById('settings-wa-on').checked = !!data.user.whatsapp_opt_in;
     if (currentUser && data.user.role) currentUser.role = data.user.role;
   } catch (err) { /* fields just start blank */ }
   loadAdminEmailBox();
@@ -2165,6 +2172,7 @@ document.getElementById('settings-save-btn').addEventListener('click', async () 
       body: {
         email: document.getElementById('settings-email').value.trim(),
         email_opt_out: !document.getElementById('settings-email-on').checked,
+        whatsapp_opt_in: document.getElementById('settings-wa-on').checked,
         district: document.getElementById('settings-district').value || undefined,
       },
     });
@@ -2244,15 +2252,74 @@ const CAL = [
     ['Start tick control for the wet season','']
   ]
 ];
+// The year plan for the animals on this farm (cattle, sheep, goats), loaded from the server.
+let yearPlan = null;
+async function loadYearPlan() {
+  try {
+    const d = await api('/plan');
+    if (d && !d.__offline && d.months) { yearPlan = d; renderCalendar(); }
+  } catch (err) { /* the general farm jobs list below still works */ }
+}
+function planItems(mi) { return yearPlan && yearPlan.months && yearPlan.months[mi] ? yearPlan.months[mi].items : []; }
+function planWhatsAppText(mi) {
+  const lines = planItems(mi).map(it => '• ' + it.title);
+  return 'TFNN plan for ' + MONTHS[mi] + ':\n' + lines.join('\n') + '\n\nConfirm dates and doses with your vet. ' + location.origin;
+}
+function openWhatsApp(text) { window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener'); }
 function renderCalendar() {
   const m = new Date().getMonth();
   const s = SEASON_OF[m];
   document.getElementById('season-banner').innerHTML = '<b>' + esc(s) + ' · ' + esc(MONTHS[m]) + '</b><span>' + esc(SEASON_NOTE[s]) + '</span>';
+  const sp = document.getElementById('plan-species');
+  if (!yearPlan) sp.textContent = '';
+  else if (yearPlan.showing_all) sp.textContent = 'Add your animals on the Herd tab and this plan shows only the jobs for them. For now it shows cattle, sheep and goats. Doses always follow the product label or your vet.';
+  else if (yearPlan.species.length) sp.textContent = 'Your plan covers: ' + yearPlan.species.join(', ') + '. Timings are a guide for a summer-rainfall farm, so confirm them with your vet or state vet. Doses always follow the product label or your vet.';
+  else sp.textContent = 'The health and feed plan covers cattle, sheep and goats. Your other animals use the general farm jobs below.';
   document.getElementById('cal-months').innerHTML = CAL.map((items, i) => [items, i]).slice(m).concat(CAL.map((items, i) => [items, i]).slice(0, m)).map(([items, i]) => {
     const rows = items.map((it, j) => '<div class="todo"><div class="tx">' + esc(it[0]) + (it[1] ? '<em>' + esc(it[1]) + '</em>' : '') + '</div><button data-m="' + i + '" data-j="' + j + '">+ Task</button></div>').join('');
-    return '<details class="month"' + (i === m ? ' open' : '') + '><summary>' + MONTHS[i] + ' <small>' + esc(SEASON_OF[i]) + '</small></summary><div class="mbody">' + rows + '</div></details>';
+    const plan = planItems(i);
+    const planRows = plan.map((it, k) => '<div class="todo"><div class="tx"><span class="chip">' + esc(it.category) + '</span> ' + esc(it.title) + (it.note ? '<em>' + esc(it.note) + '</em>' : '') + '</div><div class="acts"><button data-pm="' + i + '" data-pj="' + k + '">+ Task</button><button data-pwa="' + i + '" data-pk="' + k + '">WhatsApp</button></div></div>').join('');
+    const planBlock = plan.length
+      ? '<div class="mgroup">Health, feed and breeding plan</div><div class="mactions"><button data-padd="' + i + '">Add all ' + plan.length + ' to my tasks</button><button data-pwa="' + i + '">Send this month to WhatsApp</button></div>' + planRows + '<div class="mgroup">General farm jobs</div>'
+      : '';
+    return '<details class="month"' + (i === m ? ' open' : '') + '><summary>' + MONTHS[i] + ' <small>' + esc(SEASON_OF[i]) + '</small></summary><div class="mbody">' + planBlock + rows + '</div></details>';
   }).join('');
 }
+document.getElementById('cal-months').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-pm], button[data-pwa], button[data-padd]');
+  if (!btn || btn.disabled) return;
+  if (btn.dataset.pwa !== undefined) {
+    const mi = Number(btn.dataset.pwa);
+    if (btn.dataset.pk !== undefined) {
+      const it = planItems(mi)[Number(btn.dataset.pk)];
+      if (it) openWhatsApp('TFNN reminder: ' + it.title + '\n\nConfirm dates and doses with your vet. ' + location.origin);
+    } else openWhatsApp(planWhatsAppText(mi));
+    return;
+  }
+  btn.disabled = true;
+  try {
+    if (btn.dataset.padd !== undefined) {
+      const mi = Number(btn.dataset.padd);
+      const r = await api('/plan/add-month', { method: 'POST', body: { month: mi + 1 } });
+      if (r && r.__queued) btn.textContent = 'Saved offline';
+      else {
+        const n = r && r.added ? r.added.length : 0;
+        btn.textContent = n ? 'Added ' + n + ' ✓' : 'Already in your tasks ✓';
+        loadTasks();
+      }
+      return;
+    }
+    const mi = Number(btn.dataset.pm);
+    const it = planItems(mi)[Number(btn.dataset.pj)];
+    const now = new Date();
+    let year = now.getFullYear();
+    if (mi < now.getMonth()) year += 1;
+    const due = new Date(Date.UTC(year, mi, mi === now.getMonth() ? Math.max(now.getDate(), 1) : 1)).toISOString().slice(0, 10);
+    const r = await api('/tasks', { method: 'POST', body: { title: it.title.slice(0, 150), due_date: due, client_id: crypto.randomUUID() } });
+    btn.textContent = r && r.__queued ? 'Saved offline' : 'Added ✓';
+    loadTasks();
+  } catch (err) { btn.disabled = false; showToast(err.message, true); }
+});
 document.getElementById('cal-months').addEventListener('click', async (e) => {
   const btn = e.target.closest('button[data-m]');
   if (!btn || btn.disabled) return;
@@ -2278,7 +2345,7 @@ function showPlan(which) {
 }
 document.getElementById('plan-tab-cal').addEventListener('click', () => showPlan('cal'));
 document.getElementById('plan-tab-bulls').addEventListener('click', () => showPlan('bulls'));
-document.querySelector('#tabbar [data-panel="plan"]').addEventListener('click', renderCalendar);
+document.querySelector('#tabbar [data-panel="plan"]').addEventListener('click', () => { renderCalendar(); loadYearPlan(); });
 
 const BULL_LOG_TYPES = ['Breeding Soundness Exam','Joined Herd','Removed from Herd','Body Condition Score','Hoof / Foot Care','Vaccinated','Dosed / Dewormed','Dipped / Tick Control','Sick / Treated'];
 const NEXT_DUE_DAYS = { 'Breeding Soundness Exam': 365, 'Vaccinated': 365, 'Dosed / Dewormed': 180, 'Dipped / Tick Control': 60 };

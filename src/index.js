@@ -22,6 +22,7 @@ const notificationRoutes = require('./routes/notifications');
 const jobsRoutes = require('./routes/jobs');
 const bullRoutes = require('./routes/bulls');
 const billingRoutes = require('./routes/billing');
+const planRoutes = require('./routes/plan');
 const billingGate = require('./middleware/billing');
 const errorHandler = require('./middleware/errorHandler');
 
@@ -56,6 +57,7 @@ app.use('/api/v1/jobs', jobsRoutes);
 app.use('/api/v1', billingGate);
 app.use('/api/v1/billing', billingRoutes);
 app.use('/api/v1/bulls', bullRoutes);
+app.use('/api/v1/plan', planRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/animals', animalRoutes);
 app.use('/api/v1/events', eventRoutes);

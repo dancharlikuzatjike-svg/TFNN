@@ -33,6 +33,13 @@ Env vars that must be set in Render:
 - [ ] `PAYMENT_INSTRUCTIONS` (bank/wallet details shown to members), `BILLING_ENFORCED=true` (turn on only when you are ready: expired members can then view but not change records). Fees can be overridden with FEE_MONTHLY_SMALL/BIG/HUGE/VET/SUPPLIER, FEE_REG_SMALL/BIG/VET/SUPPLIER, BIG_FARM_FROM, HUGE_FARM_FROM, MARKETPLACE_FEE_PERCENT.
 - [ ] `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`
 
+WhatsApp reminders (optional, switched on by these Render env vars; nothing is sent without them):
+- [ ] `WHATSAPP_TOKEN` (permanent access token from Meta), `WHATSAPP_PHONE_NUMBER_ID` (the id of the business number, not the number itself)
+- [ ] `WHATSAPP_TEMPLATE` (default `tfnn_task_digest`) and `WHATSAPP_TEMPLATE_LANG` (default `en`)
+- The approved template body must have three variables: `Hi {{1}}, you have {{2}} farm task(s) due on TFNN: {{3}}. Open the app to mark them done.`
+- Farmers choose WhatsApp reminders themselves in Settings. The daily job (`POST /api/v1/jobs/task-reminders`) sends one message a day to each farmer who did.
+- Setup steps: see `WHATSAPP-SETUP.md`.
+
 Frontend files (GitHub Pages, same folder as `app.html`):
 - [ ] `app.html` (latest version — includes offline sync, media capture, marketplace, spreadsheet import, notifications)
 - [ ] `manifest.json`, `sw.js`, `icon-192.png`, `icon-512.png`

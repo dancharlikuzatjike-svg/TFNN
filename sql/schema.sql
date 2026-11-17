@@ -395,3 +395,19 @@ ALTER TABLE class_price ALTER COLUMN species TYPE VARCHAR(40);
 
 -- A flock is one record with a head count (e.g. "Hens: 200"). Single animals have head_count 1.
 ALTER TABLE animal ADD COLUMN IF NOT EXISTS head_count INT NOT NULL DEFAULT 1;
+
+-- ---------------------------------------------------------------------------
+-- WhatsApp reminders: farmer opt-in + a delivery log (once-a-day digests, diagnosing failures)
+-- ---------------------------------------------------------------------------
+ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp_opt_in BOOLEAN NOT NULL DEFAULT false;
+
+CREATE TABLE IF NOT EXISTS whatsapp_log (
+    log_id      SERIAL PRIMARY KEY,
+    user_id     INT REFERENCES users(user_id) ON DELETE SET NULL,
+    kind        VARCHAR(30),
+    to_number   VARCHAR(30),
+    status      VARCHAR(10) NOT NULL,
+    error       TEXT,
+    created_at  TIMESTAMP DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_whatsapp_log_user_kind ON whatsapp_log(user_id, kind, created_at);
