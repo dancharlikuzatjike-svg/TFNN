@@ -608,9 +608,9 @@ details.month .mbody{ padding:0 14px 8px; }
 <div class="sheet" id="import-sheet">
   <div class="sheet-handle"></div>
   <div class="ql-step active" id="imp-step-file">
-    <div class="ql-title">Import herd from spreadsheet</div>
-    <p class="meta" style="color:var(--ink-soft); margin-bottom:14px;">Upload a .csv or .xlsx file. You'll match its columns to TFNN fields on the next screen — nothing imports until you confirm.</p>
-    <input type="file" id="imp-file-input" accept=".csv,.xlsx,.xls">
+    <div class="ql-title">Import herd from a file</div>
+    <p class="meta" style="color:var(--ink-soft); margin-bottom:14px;">Upload a .csv or .xlsx spreadsheet, or your NamLITS <b>Herd Statement - Tagged List</b> as a PDF. You'll see a preview first — nothing imports until you confirm.</p>
+    <input type="file" id="imp-file-input" accept=".csv,.xlsx,.xls,.pdf,application/pdf">
   </div>
   <div class="ql-step" id="imp-step-map">
     <button class="ql-back" id="imp-back-file">&larr; Back</button>
@@ -1979,9 +1979,116 @@ function showImpStep(name){
 document.getElementById('imp-back-file').addEventListener('click', () => showImpStep('file'));
 document.getElementById('imp-back-map').addEventListener('click', () => showImpStep('map'));
 
+// ---- NamLITS Herd Statement (PDF) ----
+// BEGIN NAMLITS PARSER
+// Reads the NamLITS "Herd Statement - Tagged List" report. `pages` holds, for each page, the text
+// pieces pdf.js found: { str, x, y }. Each herd group has a line with animal type, class, breed,
+// production type, head count and the first tag, and its other tags follow on lines of their own.
+// Returns { rows: [[tag, animalType, class, breed, production]], declared, groups, problems }.
+function parseNamlitsPages(pages) {
+  const PROD = /^(beef|dairy|dual|wool|meat|mutton|hair|fibre|draught)$/i;
+  const rows = [], problems = [];
+  let declared = null, groups = 0, cur = null, cols = null;
+  const closeGroup = () => {
+    if (cur && cur.head != null && cur.head !== cur.tags) problems.push(`${cur.type} ${cur.cls} ${cur.breed}: the statement says ${cur.head} head but lists ${cur.tags} tags`);
+  };
+  for (const items of pages) {
+    const named = (name) => items.find((i) => i.str.trim().toLowerCase() === name);
+    const hType = named('animal type'), hClass = named('class'), hBreed = named('breed'), hProd = named('prdtn type');
+    if (hType && hClass && hBreed && hProd) cols = { type: hType.x, cls: hClass.x, breed: hBreed.x, prod: hProd.x };
+    const lines = [];
+    for (const it of items.filter((i) => i.str.trim())) {
+      let line = lines.find((l) => Math.abs(l.y - it.y) <= 2);
+      if (!line) { line = { y: it.y, items: [] }; lines.push(line); }
+      line.items.push(it);
+    }
+    lines.sort((a, b) => b.y - a.y);
+    for (const line of lines) {
+      line.items.sort((a, b) => a.x - b.x);
+      const text = line.items.map((i) => i.str.trim()).join(' ');
+      const total = text.match(/Animal Total:\s*(\d+)/i);
+      if (total) { declared = Number(total[1]); continue; }
+      if (!cols || line.items.some((i) => /^animal type$/i.test(i.str.trim()))) continue; // skip the column heading line
+      const colText = (from, to) => line.items.filter((i) => i.x >= from - 4 && (to == null || i.x < to - 4)).map((i) => i.str.trim()).join(' ').trim();
+      const right = line.items.filter((i) => i.x >= cols.prod + 55);
+      const tags = right.filter((i) => /^\d{5,}$/.test(i.str.trim())).map((i) => i.str.trim());
+      const headItem = right.find((i) => /^\d{1,4}$/.test(i.str.trim()));
+      const type = colText(cols.type, cols.cls), cls = colText(cols.cls, cols.breed);
+      if (type && cls) {
+        closeGroup();
+        let breed = colText(cols.breed, cols.prod), prod = colText(cols.prod, cols.prod + 55);
+        if (!prod) { // a long breed name can run into the next column
+          const words = breed.split(' ');
+          if (words.length > 1 && PROD.test(words[words.length - 1])) { prod = words.pop(); breed = words.join(' '); }
+        }
+        breed = breed.replace(/\bCrossbr$/i, 'Crossbreed');
+        const cleanClass = /^ox$/i.test(cls) ? 'Steer' : /^calf\b/i.test(cls) ? 'Calf' : cls;
+        cur = { type, cls: cleanClass, breed, prod, head: headItem ? Number(headItem.str.trim()) : null, tags: 0 };
+        groups++;
+      } else if (tags.length && !cur) {
+        problems.push('Found tags before any animal group');
+        continue;
+      }
+      for (const t of tags) {
+        if (!cur) break;
+        rows.push([t, cur.type, cur.cls, cur.breed, cur.prod]);
+        cur.tags++;
+      }
+    }
+  }
+  closeGroup();
+  return { rows, declared, groups, problems };
+}
+// END NAMLITS PARSER
+
+let pdfJsPromise = null;
+function loadPdfJs() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if (!pdfJsPromise) pdfJsPromise = new Promise((resolve, reject) => {
+    const el = document.createElement('script');
+    el.src = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
+    el.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js'; resolve(window.pdfjsLib); };
+    el.onerror = () => { pdfJsPromise = null; reject(new Error('Could not load the PDF reader. Check your internet and try again.')); };
+    document.head.appendChild(el);
+  });
+  return pdfJsPromise;
+}
+async function readPdfPages(buffer) {
+  const lib = await loadPdfJs();
+  const doc = await lib.getDocument({ data: new Uint8Array(buffer) }).promise;
+  const pages = [];
+  for (let n = 1; n <= doc.numPages; n++) {
+    const content = await (await doc.getPage(n)).getTextContent();
+    pages.push(content.items.map((i) => ({ str: i.str, x: i.transform[4], y: i.transform[5] })));
+  }
+  return pages;
+}
+async function importPdfFile(file) {
+  showToast('Reading the PDF…');
+  try {
+    const result = parseNamlitsPages(await readPdfPages(await file.arrayBuffer()));
+    if (!result.rows.length) { showToast('I could not find animals in that PDF. Use the NamLITS "Herd Statement - Tagged List" report.', true); return; }
+    importState.headers = ['Tag number', 'Animal type', 'Class', 'Breed', 'Production type'];
+    importState.rows = result.rows;
+    renderMappingStep();
+    document.getElementById('imp-preview-btn').click(); // the columns are known, so go straight to the preview
+    const notes = [];
+    if (result.declared != null && result.declared !== result.rows.length) notes.push(`The statement says ${result.declared} animals but ${result.rows.length} were read. Check the list before you import.`);
+    notes.push(...result.problems);
+    if (notes.length) {
+      const warnEl = document.getElementById('imp-preview-warning');
+      warnEl.style.display = 'block';
+      warnEl.textContent = notes.join(' ');
+    }
+  } catch (err) {
+    showToast('Could not read that PDF: ' + err.message, true);
+  }
+}
+
 document.getElementById('imp-file-input').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
+  if (/\.pdf$/i.test(file.name) || file.type === 'application/pdf') { importPdfFile(file); return; }
   const reader = new FileReader();
   reader.onload = (ev) => {
     try {
